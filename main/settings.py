@@ -15,26 +15,34 @@ DEBUG = env.bool("DEBUG")
 ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=["localhost"])
 
 INSTALLED_APPS = [
+    # Modeltranslation
     'modeltranslation',
+
+    # Django built-in apps
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+
+    # Third-party apps
     'channels',
-    'users.apps.UsersConfig',
-    'restapp',
     'rest_framework',
     'rest_framework.authtoken',
     'rest_framework_swagger',
     'rest_framework_simplejwt.token_blacklist',
     'django_filters',
     'corsheaders',
-    'monitoring.apps.MonitoringConfig',
-    'directory',
     'django_celery_results',
     'django_celery_beat',
+
+    # Local apps
+    'users.apps.UsersConfig',
+    'directory',
+    'monitoring.apps.MonitoringConfig',
+    'restapp',
+    'fleet',
 ]
 
 MIDDLEWARE = [

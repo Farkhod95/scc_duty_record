@@ -16,8 +16,8 @@ def _role_names(user) -> Set[str]:
 class NotificationCountView(APIView):
 
     def get(self, request):
-        status_param = (request.GET.get("status") or "").strip().lower()
-        responsible_by_param = (request.GET.get("responsible_by") or "").strip()
+        status_param = (request.GET.get("status", ) or "").strip().lower()
+        responsible_by_param = (request.GET.get("responsible_by", ) or "").strip()
 
         # status validate
         allowed_statuses = {k.lower() for k, _ in Notification.STATUS.choices}

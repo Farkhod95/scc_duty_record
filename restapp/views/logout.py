@@ -9,7 +9,7 @@ class LogoutView(APIView):
     authentication_classes = (JWTAuthentication,)
 
     def post(self, request):
-        refresh_token = request.data.get("refresh")
+        refresh_token = request.data.get("refresh", )
         if not refresh_token:
             return Response({"detail": "Refresh token is required."}, status=400)
 

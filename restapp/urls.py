@@ -24,6 +24,7 @@ urlpatterns = [
     path('', include('users.urls')),
     path('', include('monitoring.urls')),
     path('', include('directory.urls')),
+    path('', include('fleet.urls')),
     re_path(r'^notification/$', NotificationView.as_view(), name='notification_view'),
     path('notification/<int:pk>', NotificationDetailView.as_view(), name='notification_detail_view'),
     path('notification/count/', NotificationCountView.as_view(), name='notification_detail_view'),
