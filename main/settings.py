@@ -40,6 +40,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
+    'restapp.middlewares.simple_404.SimpleNotFoundMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'corsheaders.middleware.CorsMiddleware',  # for front
     'django.middleware.common.CommonMiddleware',
@@ -55,11 +56,9 @@ MIDDLEWARE = [
 CORS_ORIGIN_ALLOW_ALL = False
 
 CORS_ALLOWED_ORIGINS = [
-    "http://10.10.20.63:3030",
-    "http://172.20.20.251:3030",
-    "http://192.168.43.22",
-    "https://pi.iiv.uz",
-    "http://pi.iiv.uz",
+    "http://192.168.168.17:3030",
+    "http://192.168.168.17",
+    "http://192.168.168.17:8080",
     "http://localhost:3000",  # agar lokalda ishlayotgan bo‘lsa
     "http://localhost:5173",  # agar lokalda ishlayotgan bo‘lsa
 ]
@@ -101,43 +100,11 @@ CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers.DatabaseScheduler'
 
 ### Local Host uchun
 
-CHANNEL_LAYERS = {
-    'default': {
-        'BACKEND': 'channels_redis.core.RedisChannelLayer',
-        'CONFIG': {
-            "hosts": [('127.0.0.1', 6379)],  # Make sure Redis is running on this port
-        },
-    },
-}
-
-CACHES = {
-    'default': {
-        'BACKEND': 'django.core.cache.backends.redis.RedisCache',
-        'LOCATION': 'redis://localhost:6379/1',
-    }
-}
-
-CELERY_BROKER_URL = 'redis://localhost:6379/0'
-
-
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql_psycopg2',
-        'NAME': env("DB_NAME"),
-        'USER': env("DB_USER"),
-        'PASSWORD': env("DB_PASSWORD"),
-        'HOST': env("DB_HOST"),
-        'PORT': env("DB_PORT"),
-    }
-}
-
-### Server uchun
-
 # CHANNEL_LAYERS = {
 #     'default': {
 #         'BACKEND': 'channels_redis.core.RedisChannelLayer',
 #         'CONFIG': {
-#             "hosts": [('redis', 6379)],
+#             "hosts": [('127.0.0.1', 6379)],  # Make sure Redis is running on this port
 #         },
 #     },
 # }
@@ -145,22 +112,54 @@ DATABASES = {
 # CACHES = {
 #     'default': {
 #         'BACKEND': 'django.core.cache.backends.redis.RedisCache',
-#         'LOCATION': 'redis://redis:6379/1',
+#         'LOCATION': 'redis://localhost:6379/1',
 #     }
 # }
 #
-# CELERY_BROKER_URL = 'redis://redis:6379/0'
+# CELERY_BROKER_URL = 'redis://localhost:6379/0'
+#
 #
 # DATABASES = {
 #     'default': {
 #         'ENGINE': 'django.db.backends.postgresql_psycopg2',
-#         'NAME': env("SERVER_DB_NAME"),
-#         'USER': env("SERVER_DB_USER"),
-#         'PASSWORD': env("SERVER_DB_PASSWORD"),
-#         'HOST': env("SERVER_DB_HOST"),
-#         'PORT': env("SERVER_DB_PORT"),
+#         'NAME': env("DB_NAME"),
+#         'USER': env("DB_USER"),
+#         'PASSWORD': env("DB_PASSWORD"),
+#         'HOST': env("DB_HOST"),
+#         'PORT': env("DB_PORT"),
 #     }
 # }
+
+### Server uchun
+
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels_redis.core.RedisChannelLayer',
+        'CONFIG': {
+            "hosts": [('redis', 6379)],
+        },
+    },
+}
+
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.redis.RedisCache',
+        'LOCATION': 'redis://redis:6379/1',
+    }
+}
+
+CELERY_BROKER_URL = 'redis://redis:6379/0'
+
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql_psycopg2',
+        'NAME': env("SERVER_DB_NAME"),
+        'USER': env("SERVER_DB_USER"),
+        'PASSWORD': env("SERVER_DB_PASSWORD"),
+        'HOST': env("SERVER_DB_HOST"),
+        'PORT': env("SERVER_DB_PORT"),
+    }
+}
 
 # Password validation
 
