@@ -2,14 +2,28 @@ from django.contrib import admin
 from django.utils.translation import gettext_lazy as _
 from django.utils.html import format_html
 from django.utils import timezone
-from .models import Duty, DutyChangeRequest, DutyStatus, ChangeRequestStatus
+from .models import Duty, DutyChangeRequest, DutyStatus, ChangeRequestStatus, DutyCategory, DutyUser
+
+
+@admin.register(DutyCategory)
+class DutyCategoryAdmin(admin.ModelAdmin):
+    list_display = ['id', 'name', 'is_active', 'created_time']
+    list_filter = ['is_active', 'created_time']
+    search_fields = ['name',]
+    readonly_fields = ['created_time', 'updated_time', 'created_by', 'updated_by']
+
+    def save_model(self, request, obj, form, change):
+        if not change:
+            obj.created_by = request.user
+        obj.updated_by = request.user
+        super().save_model(request, obj, form, change)
 
 
 @admin.register(Duty)
 class DutyAdmin(admin.ModelAdmin):
     list_display = [
         'id', 'name', 'organization', 'mahalla', 'status_badge',
-        'start_time', 'end_time', 'is_active_badge', 'created_time'
+        'start_time', 'end_time', 'created_time'
     ]
     list_filter = ['status', 'start_time', 'end_time', 'organization', 'created_time']
     search_fields = ['name', 'organization__name', 'mahalla__name']
@@ -53,15 +67,6 @@ class DutyAdmin(admin.ModelAdmin):
         )
 
     status_badge.short_description = _('Status')
-
-    def is_active_badge(self, obj):
-        if obj.is_active():
-            return format_html(
-                '<span style="color: green; font-weight: bold;">✓ Faol</span>'
-            )
-        return format_html('<span style="color: gray;">—</span>')
-
-    is_active_badge.short_description = _('Hozir faolmi?')
 
     def save_model(self, request, obj, form, change):
         if not change:  # yangi yaratilayotgan bo'lsa
@@ -184,3 +189,39 @@ class DutyChangeRequestAdmin(admin.ModelAdmin):
         self.message_user(request, _(f'{count} ta so\'rov rad etildi'))
 
     reject_requests.short_description = _('Tanlangan so\'rovlarni rad etish')
+
+
+@admin.register(DutyUser)
+class DutyUserAdmin(admin.ModelAdmin):
+    list_display = [
+        'id', 'user_display', 'duty', 'current_status',
+        'is_driver', 'transport', 'check_in_time',
+        'check_in_verified', 'created_time'
+    ]
+
+    list_filter = [
+        'current_status', 'is_driver', 'check_in_verified',
+        'is_notified', 'created_time', 'duty'
+    ]
+
+    search_fields = [
+        'user__first_name', 'user__last_name', 'user__username',
+        'duty__name', 'transport__number'
+    ]
+
+
+    readonly_fields = ['created_time', 'updated_time', 'notified_at']
+
+    def user_display(self, obj):
+        return obj.user.get_full_name() or obj.user.username
+
+    user_display.short_description = 'Foydalanuvchi'
+
+    def check_in_photo_display(self, obj):
+        if obj.check_in_photo:
+            return format_html('<img src="{}" width="50" height="50" style="border-radius: 5px;" />',
+                               obj.check_in_photo.url)
+        return "-"
+
+    check_in_photo_display.short_description = 'Foto'
+

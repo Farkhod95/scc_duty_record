@@ -26,9 +26,27 @@ class DutyUserStatus(models.TextChoices):
     OFFLINE = 'offline', _('Offline')
 
 
+class DutyCategory(BaseModel):
+    name = models.CharField(_('Name'), max_length=255, help_text=_("Kategoriya nomi"))
+    description = models.TextField(_('Description'), null=True, blank=True, help_text=_("Kategoriya haqida ma'lumot"))
+    is_active = models.BooleanField(_('Is active'), default=True, help_text=_("Faolmi?"))
+
+    class Meta:
+        verbose_name = _("Duty category")
+        verbose_name_plural = _("Duty categories")
+        ordering = ['name']
+        indexes = [
+            models.Index(fields=['is_active']),
+        ]
+
+    def __str__(self):
+        return f"{self.name}"
+
+
 class Duty(BaseModel):
     organization = models.ForeignKey('directory.Organization', on_delete=models.CASCADE, related_name='duties', help_text=_("Navbatchilik tegishli tashkilot"))
     mahalla = models.ForeignKey('directory.Mahalla', on_delete=models.CASCADE, related_name='duties', null=True, blank=True, help_text=_("Navbatchilik tegishli mahalla"))
+    category = models.ForeignKey(DutyCategory, on_delete=models.PROTECT, related_name='duties', help_text=_("Navbatchilik kategoriyasi"))
     name = models.CharField(_('Name'), max_length=255, help_text=_("Navbatchilik nomi"))
     start_time = models.DateTimeField(_('Start time'), help_text=_("Boshlanish vaqti"))
     end_time = models.DateTimeField(_('End time'), help_text=_("Tugash vaqti"))
