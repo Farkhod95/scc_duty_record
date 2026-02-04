@@ -4,7 +4,7 @@ from .models import TransportType, Transport
 
 @admin.register(TransportType)
 class TransportTypeAdmin(admin.ModelAdmin):
-    list_display = ['name', 'icon_url']
+    list_display = ['name', 'created_time']
     search_fields = ['name']
 
 

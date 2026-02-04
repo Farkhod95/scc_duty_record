@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from .models import Region, District, Position, Department, Country, Mahalla,  Organization, Nationality, SpecialRank
+from .models import Region, District, Position, Department, Country, Mahalla,  Organization, Nationality, SpecialRank, Location
 
 
 # Tarjima asosiy serializeri
@@ -9,6 +9,7 @@ class LocaleSerializer(serializers.ModelSerializer):
     name_uz_cyrl = serializers.CharField(allow_blank=False)
     name_ru = serializers.CharField(allow_blank=False)
     name_kaa = serializers.CharField(allow_blank=False)
+
 
 
 class SpecialRankSerializer(LocaleSerializer):
@@ -272,3 +273,43 @@ class PositionListPublicSerializer(LocaleSerializer):
     class Meta:
         model = Position
         fields = ('id', 'name')
+
+
+class LocationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Location
+        fields = [
+            'id', 'district', 'title', 'key', 'boundary_data',
+            'created_time', 'updated_time', 'created_by', 'updated_by'
+        ]
+        read_only_fields = ['id', 'created_time', 'updated_time', 'created_by', 'updated_by']
+
+
+class LocationListSerializer(serializers.ModelSerializer):
+    district_name = serializers.CharField(source='district.name', read_only=True)
+    has_boundary = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Location
+        fields = [
+            'id', 'district', 'district_name',
+            'title', 'key', 'has_boundary', 'created_time'
+        ]
+
+    def get_has_boundary(self, obj):
+        return obj.boundary_data is not None and len(obj.boundary_data) > 0
+
+
+class LocationDetailSerializer(serializers.ModelSerializer):
+    district_name = serializers.CharField(source='district.name', read_only=True)
+    district_code = serializers.CharField(source='district.code', read_only=True)
+    created_by_name = serializers.CharField(source='created_by.get_full_name', read_only=True)
+
+    class Meta:
+        model = Location
+        fields = [
+            'id', 'district', 'district_name', 'district_code',
+            'title', 'key', 'boundary_data',
+            'created_time', 'updated_time',
+            'created_by', 'created_by_name', 'updated_by'
+        ]

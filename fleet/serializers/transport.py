@@ -16,12 +16,11 @@ class TransportSerializer(serializers.ModelSerializer):
 class TransportListSerializer(serializers.ModelSerializer):
     organization_name = serializers.CharField(source='organization.name', read_only=True)
     type_name = serializers.CharField(source='type.name', read_only=True)
-    type_icon = serializers.URLField(source='type.icon_url', read_only=True)
 
     class Meta:
         model = Transport
         fields = [
             'id', 'organization', 'organization_name',
-            'type', 'type_name', 'type_icon',
+            'type', 'type_name',
             'number', 'model', 'created_time'
         ]

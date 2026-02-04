@@ -1,7 +1,7 @@
 from django.contrib import admin
 from directory.models import (
     District, Region, Department, Position, Country, Organization,
-    Mahalla, Nationality, SpecialRank
+    Mahalla, Nationality, SpecialRank, Location
 )
 
 
@@ -79,3 +79,11 @@ class MahallaAdmin(admin.ModelAdmin):
         'region',
         'district',
     )
+
+
+@admin.register(Location)
+class LocationAdmin(admin.ModelAdmin):
+    list_display = ['id', 'title', 'key', 'district', 'created_time']
+    list_filter = ['district', 'created_time']
+    search_fields = ['title', 'key', 'district__name', 'district__code']
+    readonly_fields = ['created_time', 'updated_time', 'created_by', 'updated_by']

@@ -1,7 +1,9 @@
 from django_filters.rest_framework import FilterSet
 from django_filters import rest_framework as filters
 from django_filters import rest_framework as df
-from directory.models import District, Region, Position, Department, Country, Mahalla,  Organization, Nationality, SpecialRank
+from directory.models import District, Region, Position, Department, Country, Mahalla, Organization, Nationality, \
+    SpecialRank, Location
+
 
 class NumberInFilter(df.BaseInFilter, df.NumberFilter):
     pass
@@ -95,4 +97,14 @@ class MahallaFilter(FilterSet):
             'code': ['exact'],
             'region': ['exact'],
             'district': ['exact'],
+        }
+
+
+class LocationFilter(FilterSet):
+    class Meta:
+        model = Location
+        fields = {
+            'district': ['exact'],
+            'title': ['exact', 'icontains'],
+            'key': ['exact'],
         }

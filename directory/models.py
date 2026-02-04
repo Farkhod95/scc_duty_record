@@ -136,3 +136,13 @@ class Position(BaseModel):
     def __str__(self):
         return self.name
 
+
+class Location(BaseModel):
+    district = models.ForeignKey(District, related_name='locations', on_delete=models.SET_NULL, null=True, blank=True)
+    title = models.CharField(_('Title'), max_length=255, help_text=_("Location nomi"))
+    key = models.CharField(_('Key'), max_length=100, unique=True, help_text=_("Location unique key/kodi"))
+    boundary_data = models.JSONField(null=True, blank=True)
+
+    class Meta:
+        verbose_name = _('location')
+        verbose_name_plural = _('locations')

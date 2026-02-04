@@ -6,7 +6,6 @@ from restapp.models import BaseModel
 
 class TransportType(BaseModel):
     name = models.CharField(_('Name'), max_length=100, help_text=_("Transport turining nomi"))
-    icon_url = models.URLField(_('Icon URL'), max_length=500, help_text=_("Mapda chizish uchun ikonka URL manzili"))
 
     class Meta:
         verbose_name = _("Transport type")

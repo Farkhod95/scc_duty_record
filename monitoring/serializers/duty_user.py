@@ -52,11 +52,21 @@ class DutyUserUpdateSerializer(serializers.ModelSerializer):
 class DutyUserListSerializer(serializers.ModelSerializer):
     user_full_name = serializers.CharField(source='user.get_full_name', read_only=True)
     transport_number = serializers.CharField(source='transport.number', read_only=True, allow_null=True)
+    avatar = serializers.SerializerMethodField()
 
     class Meta:
         model = DutyUser
         fields = [
             'id', 'user', 'user_full_name',
             'transport', 'transport_number',
-            'is_driver', 'current_status'
+            'is_driver', 'current_status',
+            'avatar'
         ]
+
+    def get_avatar(self, obj):
+        if obj.user and obj.user.avatar:
+            try:
+                return obj.user.avatar.url
+            except ValueError:
+                return None
+        return None

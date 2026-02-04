@@ -1,6 +1,6 @@
 from .duty_category import DutyCategoryView, DutyCategoryDetailView, DutyCategoryFieldInfoView
 from .duty import DutyFieldInfoView, DutyView, DutyDetailView, DutyApproveView, DutyRejectView, DutyActivateView, DutyCompleteView, DutyCancelView
-from .duty_user import DutyUserAddView, DutyUserUpdateView, DutyUserRemoveView
+from .duty_user import DutyUserAddView, DutyUserUpdateView
 
 __all__ = [
     'DutyCategoryView',
@@ -18,5 +18,4 @@ __all__ = [
 
     'DutyUserAddView',
     'DutyUserUpdateView',
-    'DutyUserRemoveView',
 ]

@@ -15,7 +15,6 @@ from monitoring.views import (
 
     DutyUserAddView,
     DutyUserUpdateView,
-    DutyUserRemoveView,
 )
 
 urlpatterns = [
@@ -38,6 +37,4 @@ urlpatterns = [
 
     # Duty User endpoints
     path('duty/<int:pk>/users/', DutyUserAddView.as_view(), name='duty_user_add'),
-    path('duty/<int:pk>/users/<int:user_pk>', DutyUserUpdateView.as_view(), name='duty_user_update'),
-    path('duty/<int:pk>/users/<int:user_pk>/remove', DutyUserRemoveView.as_view(), name='duty_user_remove'),
-]
+    path('duty/<int:pk>/users/<int:user_pk>', DutyUserUpdateView.as_view(), name='duty_user_update'),]

@@ -35,7 +35,7 @@ class DutyUserAddView(CreateAPIView):
             return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 
-class DutyUserUpdateView(UpdateAPIView):
+class DutyUserUpdateView(UpdateAPIView, DestroyAPIView):
     permission_classes = [IsAuthenticated]
     serializer_class = DutyUserSerializer
 
@@ -56,9 +56,6 @@ class DutyUserUpdateView(UpdateAPIView):
         except Exception as e:
             return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
-
-class DutyUserRemoveView(DestroyAPIView):
-    permission_classes = [IsAuthenticated]
 
     def delete(self, request, pk, user_pk):
         duty = get_object_or_404(Duty, id=pk)
