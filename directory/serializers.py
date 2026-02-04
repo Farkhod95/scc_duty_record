@@ -299,10 +299,6 @@ class LocationSerializer(serializers.ModelSerializer):
             if not isinstance(value, dict):
                 raise serializers.ValidationError("Boundary data dict bo'lishi kerak")
 
-            if 'type' not in value or 'coordinates' not in value:
-                raise serializers.ValidationError(
-                    "Boundary data 'type' va 'coordinates' maydonlariga ega bo'lishi kerak"
-                )
         return value
 
 
