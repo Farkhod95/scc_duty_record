@@ -36,11 +36,11 @@ class LocationView(ListCreateAPIView):
     pagination_class = ResultsSetPagination
     filter_backends = (filters.SearchFilter, filters.OrderingFilter, DjangoFilterBackend)
     filterset_class = LocationFilter
-    search_fields = ('title', 'key', 'district__name', 'district__code')
+    search_fields = ('title', 'key', 'region__name', 'district__name')
     ordering = ['title']
 
     def get_queryset(self):
-        return Location.objects.select_related('district').all()
+        return Location.objects.select_related('region', 'district').all()
 
     def post(self, request):
         serializer = LocationSerializer(data=request.data)
@@ -53,7 +53,7 @@ class LocationDetailView(RetrieveUpdateDestroyAPIView):
     serializer_class = LocationSerializer
 
     def get_queryset(self):
-        return Location.objects.select_related('district').all()
+        return Location.objects.select_related('region', 'district').all()
 
     def perform_update(self, serializer):
         serializer.save(updated_by=self.request.user)

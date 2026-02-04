@@ -83,7 +83,7 @@ class MahallaAdmin(admin.ModelAdmin):
 
 @admin.register(Location)
 class LocationAdmin(admin.ModelAdmin):
-    list_display = ['id', 'title', 'key', 'district', 'created_time']
-    list_filter = ['district', 'created_time']
-    search_fields = ['title', 'key', 'district__name', 'district__code']
+    list_display = ['id', 'title', 'key', 'region', 'district', 'created_time']
+    list_filter = ['region', 'district', 'created_time']
+    search_fields = ['title', 'key', 'region__name', 'district__name', 'district__code']
     readonly_fields = ['created_time', 'updated_time', 'created_by', 'updated_by']

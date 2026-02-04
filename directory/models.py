@@ -138,6 +138,7 @@ class Position(BaseModel):
 
 
 class Location(BaseModel):
+    region = models.ForeignKey(Region, related_name='locations', on_delete=models.SET_NULL, null=True, blank=True)
     district = models.ForeignKey(District, related_name='locations', on_delete=models.SET_NULL, null=True, blank=True)
     title = models.CharField(_('Title'), max_length=255, help_text=_("Location nomi"))
     key = models.CharField(_('Key'), max_length=100, unique=True, help_text=_("Location unique key/kodi"))
@@ -146,3 +147,12 @@ class Location(BaseModel):
     class Meta:
         verbose_name = _('location')
         verbose_name_plural = _('locations')
+        ordering = ['title']
+        indexes = [
+            models.Index(fields=['key']),
+            models.Index(fields=['region']),
+            models.Index(fields=['district']),
+        ]
+
+    def __str__(self):
+        return f"{self.title} ({self.key})"

@@ -279,37 +279,64 @@ class LocationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Location
         fields = [
-            'id', 'district', 'title', 'key', 'boundary_data',
+            'id', 'region', 'district', 'title', 'key', 'boundary_data',
             'created_time', 'updated_time', 'created_by', 'updated_by'
         ]
         read_only_fields = ['id', 'created_time', 'updated_time', 'created_by', 'updated_by']
 
+    def validate_key(self, value):
+        instance = self.instance
+        if instance:
+            if Location.objects.exclude(pk=instance.pk).filter(key=value).exists():
+                raise serializers.ValidationError("Bu key allaqachon mavjud")
+        else:
+            if Location.objects.filter(key=value).exists():
+                raise serializers.ValidationError("Bu key allaqachon mavjud")
+        return value
+
+    def validate_boundary_data(self, value):
+        if value:
+            if not isinstance(value, dict):
+                raise serializers.ValidationError("Boundary data dict bo'lishi kerak")
+
+            if 'type' not in value or 'coordinates' not in value:
+                raise serializers.ValidationError(
+                    "Boundary data 'type' va 'coordinates' maydonlariga ega bo'lishi kerak"
+                )
+        return value
+
 
 class LocationListSerializer(serializers.ModelSerializer):
-    district_name = serializers.CharField(source='district.name', read_only=True)
+    region_name = serializers.CharField(source='region.name', read_only=True, allow_null=True)
+    district_name = serializers.CharField(source='district.name', read_only=True, allow_null=True)
     has_boundary = serializers.SerializerMethodField()
 
     class Meta:
         model = Location
         fields = [
-            'id', 'district', 'district_name',
+            'id', 'region', 'region_name', 'district', 'district_name',
             'title', 'key', 'has_boundary', 'created_time'
         ]
 
     def get_has_boundary(self, obj):
-        return obj.boundary_data is not None and len(obj.boundary_data) > 0
+        return obj.boundary_data is not None and bool(obj.boundary_data)
 
 
 class LocationDetailSerializer(serializers.ModelSerializer):
-    district_name = serializers.CharField(source='district.name', read_only=True)
-    district_code = serializers.CharField(source='district.code', read_only=True)
+    region_name = serializers.CharField(source='region.name', read_only=True, allow_null=True)
+    region_code = serializers.CharField(source='region.code', read_only=True, allow_null=True)
+    district_name = serializers.CharField(source='district.name', read_only=True, allow_null=True)
+    district_code = serializers.CharField(source='district.code', read_only=True, allow_null=True)
     created_by_name = serializers.CharField(source='created_by.get_full_name', read_only=True)
+    updated_by_name = serializers.CharField(source='updated_by.get_full_name', read_only=True)
 
     class Meta:
         model = Location
         fields = [
-            'id', 'district', 'district_name', 'district_code',
+            'id', 'region', 'region_name', 'region_code',
+            'district', 'district_name', 'district_code',
             'title', 'key', 'boundary_data',
             'created_time', 'updated_time',
-            'created_by', 'created_by_name', 'updated_by'
+            'created_by', 'created_by_name',
+            'updated_by', 'updated_by_name'
         ]

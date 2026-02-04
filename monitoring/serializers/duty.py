@@ -43,6 +43,8 @@ class DutyListSerializer(serializers.ModelSerializer):
 class DutyDetailSerializer(serializers.ModelSerializer):
     organization_name = serializers.CharField(source='organization.name', read_only=True)
     mahalla_name = serializers.CharField(source='mahalla.name', read_only=True)
+    region = serializers.IntegerField(source='organization.region_id', read_only=True)
+    district = serializers.IntegerField(source='organization.district_id', read_only=True)
     category_detail = DutyCategoryListSerializer(source='category', read_only=True)
     duty_users = DutyUserListSerializer(many=True, read_only=True)
     approved_by_name = serializers.CharField(source='approved_by.get_full_name', read_only=True)
@@ -55,7 +57,7 @@ class DutyDetailSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'organization', 'organization_name', 'mahalla', 'mahalla_name',
             'category', 'category_detail', 'name', 'start_time', 'end_time',
-            'status', 'status_display', 'file',
+            'status', 'status_display', 'file', 'region', 'district',
             'approved_by', 'approved_by_name', 'approved_at',
             'rejection_reason', 'duty_users', 'statistics',
             'created_time', 'updated_time', 'created_by', 'created_by_name', 'updated_by'
