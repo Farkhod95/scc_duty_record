@@ -26,6 +26,8 @@ class DutyListSerializer(serializers.ModelSerializer):
     category_type = serializers.CharField(source='category.type', read_only=True)
     users_count = serializers.SerializerMethodField()
     status_display = serializers.CharField(source='get_status_display', read_only=True)
+    region = serializers.IntegerField(source='organization.region_id', read_only=True)
+    district = serializers.IntegerField(source='organization.district_id', read_only=True)
 
     class Meta:
         model = Duty
@@ -33,7 +35,7 @@ class DutyListSerializer(serializers.ModelSerializer):
             'id', 'organization', 'organization_name', 'mahalla', 'mahalla_name',
             'category', 'category_name', 'category_type', 'name',
             'start_time', 'end_time', 'status', 'status_display',
-            'users_count', 'created_time'
+            'users_count', 'created_time', 'region', 'district'
         ]
 
     def get_users_count(self, obj):
