@@ -53,6 +53,9 @@ class DutyUserListSerializer(serializers.ModelSerializer):
     user_full_name = serializers.CharField(source='user.get_full_name', read_only=True)
     transport_number = serializers.CharField(source='transport.number', read_only=True, allow_null=True)
     transport_model = serializers.CharField(source='transport.model', read_only=True, allow_null=True)
+    phone_number = serializers.CharField(source='user.phone_number', read_only=True)
+    department = serializers.CharField(source='user.department.name', read_only=True)
+    position = serializers.CharField(source='user.position.name', read_only=True)
     avatar = serializers.SerializerMethodField()
 
     class Meta:
@@ -61,7 +64,9 @@ class DutyUserListSerializer(serializers.ModelSerializer):
             'id', 'user', 'user_full_name',
             'transport', 'transport_number',
             'is_driver', 'current_status',
-            'avatar', 'transport_model'
+            'avatar', 'transport_model',
+            'phone_number', 'department',
+            'position'
         ]
 
     def get_avatar(self, obj):
