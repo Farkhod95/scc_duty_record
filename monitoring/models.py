@@ -30,6 +30,7 @@ class DutyCategory(BaseModel):
     name = models.CharField(_('Name'), max_length=255, help_text=_("Kategoriya nomi"))
     description = models.TextField(_('Description'), null=True, blank=True, help_text=_("Kategoriya haqida ma'lumot"))
     is_active = models.BooleanField(_('Is active'), default=True, help_text=_("Faolmi?"))
+    is_manu = models.BooleanField(_('Is manu'), default=False, help_text=_("Navbatdagi manu?"))
 
     class Meta:
         verbose_name = _("Duty category")

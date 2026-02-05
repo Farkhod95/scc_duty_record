@@ -7,8 +7,8 @@ from .models import Duty, DutyChangeRequest, DutyStatus, ChangeRequestStatus, Du
 
 @admin.register(DutyCategory)
 class DutyCategoryAdmin(admin.ModelAdmin):
-    list_display = ['id', 'name', 'is_active', 'created_time']
-    list_filter = ['is_active', 'created_time']
+    list_display = ['id', 'name', 'is_active', 'is_manu', 'created_time']
+    list_filter = ['is_active', 'is_manu', 'created_time']
     search_fields = ['name',]
     readonly_fields = ['created_time', 'updated_time', 'created_by', 'updated_by']
 
