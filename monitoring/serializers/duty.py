@@ -1,7 +1,20 @@
 from rest_framework import serializers
-from monitoring.models import Duty
+from monitoring.models import Duty, DutyFile
 from monitoring.serializers.duty_category import DutyCategoryListSerializer
 from monitoring.serializers.duty_user import DutyUserListSerializer
+
+
+class DutyFileSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = DutyFile
+        fields = ['id', 'duty', 'file', 'name', 'created_time']
+        read_only_fields = ['id', 'created_time']
+
+
+class DutyFileListSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = DutyFile
+        fields = ['id', 'file', 'name', 'created_time']
 
 
 class DutySerializer(serializers.ModelSerializer):
@@ -9,7 +22,7 @@ class DutySerializer(serializers.ModelSerializer):
         model = Duty
         fields = [
             'id', 'organization', 'location', 'category', 'name',
-            'start_time', 'end_time', 'status', 'file',
+            'start_time', 'end_time', 'status',
             'approved_by', 'approved_at', 'rejection_reason',
             'created_time', 'updated_time', 'created_by', 'updated_by'
         ]
@@ -49,6 +62,7 @@ class DutyDetailSerializer(serializers.ModelSerializer):
     district = serializers.IntegerField(source='organization.district_id', read_only=True)
     category_detail = DutyCategoryListSerializer(source='category', read_only=True)
     duty_users = DutyUserListSerializer(many=True, read_only=True)
+    files = DutyFileListSerializer(many=True, read_only=True)
     approved_by_name = serializers.CharField(source='approved_by.get_full_name', read_only=True)
     created_by_name = serializers.CharField(source='created_by.get_full_name', read_only=True)
     status_display = serializers.CharField(source='get_status_display', read_only=True)
@@ -59,7 +73,7 @@ class DutyDetailSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'organization', 'organization_name', 'location', 'location_name',
             'category', 'category_detail', 'name', 'start_time', 'end_time',
-            'status', 'status_display', 'file', 'region', 'district',
+            'status', 'status_display', 'files', 'region', 'district',
             'approved_by', 'approved_by_name', 'approved_at',
             'rejection_reason', 'duty_users', 'statistics',
             'created_time', 'updated_time', 'created_by', 'created_by_name', 'updated_by'

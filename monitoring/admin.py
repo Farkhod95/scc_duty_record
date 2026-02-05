@@ -2,7 +2,14 @@ from django.contrib import admin
 from django.utils.translation import gettext_lazy as _
 from django.utils.html import format_html
 from django.utils import timezone
-from .models import Duty, DutyChangeRequest, DutyStatus, ChangeRequestStatus, DutyCategory, DutyUser
+from .models import Duty, DutyChangeRequest, DutyStatus, ChangeRequestStatus, DutyCategory, DutyUser, DutyFile
+
+
+class DutyFileInline(admin.TabularInline):
+    model = DutyFile
+    extra = 1
+    fields = ['file', 'name']
+    readonly_fields = ['created_time']
 
 
 @admin.register(DutyCategory)
@@ -30,15 +37,14 @@ class DutyAdmin(admin.ModelAdmin):
     readonly_fields = ['created_time', 'updated_time', 'created_by', 'updated_by', 'approved_at']
     date_hierarchy = 'start_time'
 
+    inlines = [DutyFileInline]
+
     fieldsets = (
         (_('Asosiy ma\'lumotlar'), {
             'fields': ('name', 'organization', 'location', 'status')
         }),
         (_('Vaqt'), {
             'fields': ('start_time', 'end_time')
-        }),
-        (_('Fayl'), {
-            'fields': ('file',)
         }),
         (_('Tasdiqlash'), {
             'fields': ('approved_by', 'approved_at', 'rejection_reason'),

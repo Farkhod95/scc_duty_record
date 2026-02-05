@@ -52,7 +52,6 @@ class Duty(BaseModel):
     start_time = models.DateTimeField(_('Start time'), help_text=_("Boshlanish vaqti"))
     end_time = models.DateTimeField(_('End time'), help_text=_("Tugash vaqti"))
     status = models.CharField(_('Status'), max_length=20, choices=DutyStatus.choices, default=DutyStatus.PENDING, help_text=_("Navbatchilik holati"))
-    file = models.FileField(_('File'), upload_to='duties/%Y/%m/%d/', null=True, blank=True, help_text=_("Biriktirilgan fayl"))
     approved_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='approved_duties', help_text=_("Kim tasdiqladi"))
     approved_at = models.DateTimeField(_('Approved at'), null=True, blank=True, help_text=_("Tasdiqlangan vaqt"))
     rejection_reason = models.TextField(_('Rejection reason'), null=True, blank=True, help_text=_("Agar status rejected bo'lsa, sababi"))
@@ -74,6 +73,20 @@ class Duty(BaseModel):
         from django.utils import timezone
         now = timezone.now()
         return self.start_time <= now <= self.end_time and self.status in [DutyStatus.ACTIVE, DutyStatus.APPROVED]
+
+
+class DutyFile(BaseModel):
+    duty = models.ForeignKey(Duty, on_delete=models.CASCADE, related_name='files', help_text=_("Qaysi navbatchilik uchun"))
+    file = models.FileField(_('File'), upload_to='duties/%Y/%m/%d/', help_text=_("Fayl"))
+    name = models.CharField(_('Name'), max_length=255, null=True, blank=True, help_text=_("Fayl nomi"))
+
+    class Meta:
+        verbose_name = _("Duty file")
+        verbose_name_plural = _("Duty files")
+        ordering = ['-created_time']
+
+    def __str__(self):
+        return f"{self.name or self.file.name} - {self.duty.name}"
 
 
 class DutyChangeRequest(BaseModel):

@@ -12,6 +12,8 @@ from monitoring.views import (
     DutyActivateView,
     DutyCompleteView,
     DutyCancelView,
+    DutyFileView,
+    DutyFileDetailView,
 
     DutyUserAddView,
     DutyUserUpdateView,
@@ -35,6 +37,11 @@ urlpatterns = [
     path('duty/<int:pk>/complete/', DutyCompleteView.as_view(), name='duty_complete'),
     path('duty/<int:pk>/cancel/', DutyCancelView.as_view(), name='duty_cancel'),
 
+    # Duty File endpoints
+    path('duty/<int:duty_id>/files/', DutyFileView.as_view(), name='duty_file_view'),
+    path('duty/files/<int:pk>', DutyFileDetailView.as_view(), name='duty_file_detail_view'),
+
     # Duty User endpoints
     path('duty/<int:pk>/users/', DutyUserAddView.as_view(), name='duty_user_add'),
-    path('duty/<int:pk>/users/<int:user_pk>', DutyUserUpdateView.as_view(), name='duty_user_update'),]
+    path('duty/<int:pk>/users/<int:user_pk>', DutyUserUpdateView.as_view(), name='duty_user_update'),
+]

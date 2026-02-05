@@ -15,7 +15,6 @@ def create_duty(data, created_by):
         name=data.get('name'),
         start_time=data.get('start_time'),
         end_time=data.get('end_time'),
-        file=data.get('file'),
         status=DutyStatus.PENDING,
         created_by=created_by,
         updated_by=created_by

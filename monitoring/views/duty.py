@@ -7,7 +7,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from monitoring.models import Duty
+from monitoring.models import Duty, DutyFile
 from monitoring.serializers.duty import (
     DutySerializer,
     DutyListSerializer,
@@ -15,6 +15,7 @@ from monitoring.serializers.duty import (
     DutyApproveSerializer,
     DutyRejectSerializer,
     DutyCancelSerializer,
+    DutyFileSerializer,
 )
 from monitoring.filterset import DutyFilter
 from monitoring.services import duty_service
@@ -73,7 +74,7 @@ class DutyDetailView(RetrieveUpdateDestroyAPIView):
     def get_queryset(self):
         return Duty.objects.select_related(
             'organization', 'location', 'category', 'approved_by'
-        ).prefetch_related('duty_users__user', 'duty_users__transport').all()
+        ).prefetch_related('duty_users__user', 'duty_users__transport', 'files').all()
 
     def get(self, request, pk):
         instance = get_object_or_404(Duty, id=pk)
@@ -205,3 +206,52 @@ class DutyCancelView(CreateAPIView):
             return Response(response_serializer.data, status=status.HTTP_200_OK)
         except Exception as e:
             return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class DutyFileView(ListCreateAPIView):
+    """Duty ga tegishli fayllarni ko'rish va qo'shish"""
+    permission_classes = [IsAuthenticated]
+    serializer_class = DutyFileSerializer
+
+    def get_queryset(self):
+        duty_id = self.kwargs.get('duty_id')
+        return DutyFile.objects.filter(duty_id=duty_id)
+
+    def post(self, request, duty_id):
+        duty = get_object_or_404(Duty, id=duty_id)
+
+        if not duty_service.can_edit_duty(duty, request.user):
+            return Response(
+                {'detail': 'Sizda bu duty ga fayl qo\'shish huquqi yo\'q'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        data = request.data.copy()
+        data['duty'] = duty_id
+
+        serializer = DutyFileSerializer(data=data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save(created_by=request.user, updated_by=request.user)
+
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+
+class DutyFileDetailView(RetrieveUpdateDestroyAPIView):
+    """Duty faylini ko'rish, yangilash va o'chirish"""
+    permission_classes = [IsAuthenticated]
+    serializer_class = DutyFileSerializer
+
+    def get_queryset(self):
+        return DutyFile.objects.all()
+
+    def delete(self, request, pk):
+        duty_file = get_object_or_404(DutyFile, id=pk)
+
+        if not duty_service.can_edit_duty(duty_file.duty, request.user):
+            return Response(
+                {'detail': 'Sizda bu faylni o\'chirish huquqi yo\'q'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        duty_file.delete()
+        return Response(nonContent(), status.HTTP_204_NO_CONTENT)
