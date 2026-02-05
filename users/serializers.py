@@ -260,12 +260,13 @@ class UserMobilListPublicIdSerializer(serializers.ModelSerializer):
 
 class UserListSerializer(serializers.ModelSerializer):
     role_detail = RoleSerializer(source='roles', many=True, read_only=True)
+    organization_detail = OrganizationSerializer(source='organization', read_only=True)
 
     class Meta:
         model = User
         fields = (
             'id', 'username', 'last_name', 'first_name', 'second_name', 'is_active', 'date_of_birthday', 'gender',
-            'phone_number', 'avatar', 'email', 'special_rank',
+            'phone_number', 'avatar', 'email', 'special_rank', 'organization', 'organization_detail',
             'date_joined', 'roles', 'role_detail', 'password', 'organization', 'position', 'department', 'region',
             'district', 'address', 'pinfl', 'passport_series', 'passport_number', 'passport_given_by', 'begin_date',
             'end_date', 'avatar_base64', 'jeton_series', 'jeton_number', 'jeton_begin_date')
