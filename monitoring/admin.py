@@ -22,17 +22,17 @@ class DutyCategoryAdmin(admin.ModelAdmin):
 @admin.register(Duty)
 class DutyAdmin(admin.ModelAdmin):
     list_display = [
-        'id', 'name', 'organization', 'mahalla', 'status_badge',
+        'id', 'name', 'organization', 'location', 'status_badge',
         'start_time', 'end_time', 'created_time'
     ]
     list_filter = ['status', 'start_time', 'end_time', 'organization', 'created_time']
-    search_fields = ['name', 'organization__name', 'mahalla__name']
+    search_fields = ['name', 'organization__name', 'location__title']
     readonly_fields = ['created_time', 'updated_time', 'created_by', 'updated_by', 'approved_at']
     date_hierarchy = 'start_time'
 
     fieldsets = (
         (_('Asosiy ma\'lumotlar'), {
-            'fields': ('name', 'organization', 'mahalla', 'status')
+            'fields': ('name', 'organization', 'location', 'status')
         }),
         (_('Vaqt'), {
             'fields': ('start_time', 'end_time')

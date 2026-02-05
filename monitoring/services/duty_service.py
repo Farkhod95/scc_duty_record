@@ -10,7 +10,7 @@ from monitoring.models import Duty, DutyUser, DutyStatus, DutyUserStatus
 def create_duty(data, created_by):
     duty = Duty.objects.create(
         organization=data.get('organization'),
-        mahalla=data.get('mahalla'),
+        location=data.get('location'),
         category=data.get('category'),
         name=data.get('name'),
         start_time=data.get('start_time'),

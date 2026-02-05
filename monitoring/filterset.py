@@ -22,7 +22,7 @@ class DutyFilter(FilterSet):
         fields = {
             'name': ['exact', 'icontains'],
             'organization': ['exact'],
-            'mahalla': ['exact'],
+            'location': ['exact'],
             'category': ['exact'],
             'status': ['exact'],
         }

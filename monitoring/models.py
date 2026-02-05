@@ -46,7 +46,7 @@ class DutyCategory(BaseModel):
 
 class Duty(BaseModel):
     organization = models.ForeignKey('directory.Organization', on_delete=models.CASCADE, related_name='duties', help_text=_("Navbatchilik tegishli tashkilot"))
-    mahalla = models.ForeignKey('directory.Mahalla', on_delete=models.CASCADE, related_name='duties', null=True, blank=True, help_text=_("Navbatchilik tegishli mahalla"))
+    location = models.ForeignKey('directory.Location', on_delete=models.CASCADE, related_name='duties', null=True, blank=True, help_text=_("Navbatchilik tegishli location"))
     category = models.ForeignKey(DutyCategory, on_delete=models.PROTECT, related_name='duties', help_text=_("Navbatchilik kategoriyasi"))
     name = models.CharField(_('Name'), max_length=255, help_text=_("Navbatchilik nomi"))
     start_time = models.DateTimeField(_('Start time'), help_text=_("Boshlanish vaqti"))

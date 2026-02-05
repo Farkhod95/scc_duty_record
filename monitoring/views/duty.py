@@ -46,12 +46,12 @@ class DutyView(ListCreateAPIView):
     pagination_class = ResultsSetPagination
     filter_backends = (filters.SearchFilter, filters.OrderingFilter, DjangoFilterBackend)
     filterset_class = DutyFilter
-    search_fields = ('name', 'organization__name', 'mahalla__name')
+    search_fields = ('name', 'organization__name', 'location__title')
     ordering = ['-start_time']
 
     def get_queryset(self):
         return Duty.objects.select_related(
-            'organization', 'mahalla', 'category', 'approved_by'
+            'organization', 'location', 'category', 'approved_by'
         ).prefetch_related('duty_users').all()
 
     def post(self, request):
@@ -72,7 +72,7 @@ class DutyDetailView(RetrieveUpdateDestroyAPIView):
 
     def get_queryset(self):
         return Duty.objects.select_related(
-            'organization', 'mahalla', 'category', 'approved_by'
+            'organization', 'location', 'category', 'approved_by'
         ).prefetch_related('duty_users__user', 'duty_users__transport').all()
 
     def get(self, request, pk):
