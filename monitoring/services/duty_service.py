@@ -24,11 +24,6 @@ def create_duty(data, created_by):
 
 @transaction.atomic
 def approve_duty(duty, approved_by):
-    if not approved_by.is_superuser:
-        raise PermissionDenied({
-            'detail': _("Faqat superadmin duty ni tasdiqlashi mumkin")
-        })
-
     if duty.status != DutyStatus.PENDING:
         raise ValidationError({
             'detail': _("Faqat pending statusdagi duty ni tasdiqlash mumkin")
@@ -82,15 +77,9 @@ def activate_duty(duty, activated_by):
             'detail': _("Faqat approved statusdagi duty ni faollashtirish mumkin")
         })
 
-    now = timezone.now()
-    if now < duty.start_time:
-        raise ValidationError({
-            'detail': _("Duty hali boshlanmagan")
-        })
-
-    if now > duty.end_time:
-        raise ValidationError({
-            'detail': _("Duty muddati tugagan")
+    if not activated_by.is_superuser:
+        raise PermissionDenied({
+            'detail': _("Faqat superadmin duty ni faollashtirishi mumkin")
         })
 
     duty.status = DutyStatus.ACTIVE

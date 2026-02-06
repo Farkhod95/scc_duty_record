@@ -12,6 +12,7 @@ from restapp.utils.responses import nonContent
 from users.filterset import UserFilter
 from users.models import User
 from users.serializers import UserSerializer, ChangePasswordSerializer, UserListPublicIdSerializer, UserListSerializer
+from users.utils.permissions import IsOrgAdmin, IsSuperAdmin
 
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework_simplejwt.views import TokenObtainPairView
@@ -54,14 +55,14 @@ class TokenAuthView(TokenObtainPairView):
         # Asl TokenObtainPairView javobini olamiz
         response = super().post(request, *args, **kwargs)
 
-        # Login muvaffaqiyatli bo‘lgani uchun log yozamiz
+        # Login muvaffaqiyatli bo'lgani uchun log yozamiz
         ip = get_client_ip(request)
         ua = request.META.get("HTTP_USER_AGENT", "")
 
         ModelChangeLog.objects.create(
             app_label="auth",                 # yoki "users" desang ham bo'ladi
             model_name="User.login",          # bu o'zing tanlagan nom
-            object_id=str(user.pk),          # qaysi user login bo‘ldi
+            object_id=str(user.pk),          # qaysi user login bo'ldi
             action=ModelChangeLog.ActionChoices.LOGIN,   # login = create sifatida
             user=user,                       # amalni qilgan user = shu userning o'zi
             data_before=None,
@@ -87,6 +88,7 @@ class UserListView(APIView):
 
 class UserView(ListCreateAPIView):
     serializer_class = UserSerializer
+    permission_classes = [IsOrgAdmin]
     pagination_class = ResultsSetPagination
     filter_backends = (filters.SearchFilter, filters.OrderingFilter, DjangoFilterBackend)
     filterset_class = UserFilter
@@ -95,29 +97,50 @@ class UserView(ListCreateAPIView):
 
     def get_queryset(self):
         queryset = User.objects.all()
-        return queryset
+
+        # Superadmin barcha userlarni ko'radi
+        if self.request.user.is_superuser:
+            return queryset
+
+        # Oddiy user faqat o'z organizatsiyasi userlarini ko'radi
+        return queryset.filter(organization=self.request.user.organization)
 
     def post(self, request):
         serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
+
+        # Organizatsiya tekshiruvi - faqat o'z organizatsiyasiga user yaratishi mumkin
+        org = serializer.validated_data.get('organization')
+        if not request.user.is_superuser and org and org != request.user.organization:
+            return Response(
+                {'detail': 'Siz faqat o\'z organizatsiyangiz uchun user yarata olasiz'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
         serializer.save(created_by=self.request.user)
         return Response(serializer.data, status.HTTP_201_CREATED)
 
 class UserDetailView(RetrieveUpdateDestroyAPIView):
-
     serializer_class = UserSerializer
+    permission_classes = [IsOrgAdmin]
 
     def get_queryset(self):
-        return User.objects.all()
+        queryset = User.objects.all()
+
+        if self.request.user.is_superuser:
+            return queryset
+
+        return queryset.filter(organization=self.request.user.organization)
 
     def perform_update(self, serializer):
         serializer.save(updated_by=self.request.user)
 
     def get(self, request, pk):
-        instance = get_object_or_404(User, id=pk)
+        queryset = self.get_queryset()
+        instance = get_object_or_404(queryset, id=pk)
         serializer = UserListPublicIdSerializer(instance)
 
-        # USER BO‘YICHA LOG
+        # USER BO'YICHA LOG
         full_name = " ".join(
             x for x in [instance.last_name, instance.first_name, instance.second_name] if x
         )
@@ -146,7 +169,8 @@ class UserDetailView(RetrieveUpdateDestroyAPIView):
     def update(self, request, pk=None, *args, **kwargs):
         partial = kwargs.pop('partial', request.method == 'PATCH')
 
-        instance = get_object_or_404(User, id=pk)
+        queryset = self.get_queryset()
+        instance = get_object_or_404(queryset, id=pk)
         serializer = self.get_serializer(instance, data=request.data, partial=partial)
         serializer.is_valid(raise_exception=True)
         serializer.save(updated_by=self.request.user)
@@ -163,9 +187,17 @@ class UserDetailView(RetrieveUpdateDestroyAPIView):
         return self.update(request, pk, *args, **kwargs)
 
     def delete(self, request, pk):
-        instance = get_object_or_404(User, id=pk)
-        instance.delete()
+        queryset = self.get_queryset()
+        instance = get_object_or_404(queryset, id=pk)
 
+        # Superadmin yoki o'zi yaratgan userni o'chirish mumkin
+        if not request.user.is_superuser:
+            return Response(
+                {'detail': 'Faqat superadmin userlarni o\'chirishi mumkin'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        instance.delete()
         return Response(nonContent(), status.HTTP_204_NO_CONTENT)
 
 

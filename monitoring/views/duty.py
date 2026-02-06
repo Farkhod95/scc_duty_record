@@ -21,6 +21,7 @@ from monitoring.filterset import DutyFilter
 from monitoring.services import duty_service
 from restapp.pagination import ResultsSetPagination
 from restapp.utils.responses import nonContent
+from users.utils.permissions import IsSuperAdmin, IsOrgAdmin
 
 
 class DutyFieldInfoView(APIView):
@@ -44,6 +45,7 @@ class DutyFieldInfoView(APIView):
 
 class DutyView(ListCreateAPIView):
     serializer_class = DutyListSerializer
+    permission_classes = [IsOrgAdmin]
     pagination_class = ResultsSetPagination
     filter_backends = (filters.SearchFilter, filters.OrderingFilter, DjangoFilterBackend)
     filterset_class = DutyFilter
@@ -51,13 +53,28 @@ class DutyView(ListCreateAPIView):
     ordering = ['-start_time']
 
     def get_queryset(self):
-        return Duty.objects.select_related(
+        queryset = Duty.objects.select_related(
             'organization', 'location', 'category', 'approved_by'
-        ).prefetch_related('duty_users').all()
+        ).prefetch_related('duty_users')
+
+        # Superadmin barcha navbatchilikni ko'radi
+        if self.request.user.is_superuser:
+            return queryset.all()
+
+        # Oddiy user faqat o'z organizatsiyasi navbatchiligini ko'radi
+        return queryset.filter(organization=self.request.user.organization)
 
     def post(self, request):
         serializer = DutySerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
+
+        # Organizatsiya tekshiruvi - faqat o'z organizatsiyasiga duty yaratishi mumkin
+        org = serializer.validated_data.get('organization')
+        if not request.user.is_superuser and org != request.user.organization:
+            return Response(
+                {'detail': 'Siz faqat o\'z organizatsiyangiz uchun navbatchilik yarata olasiz'},
+                status=status.HTTP_403_FORBIDDEN
+            )
 
         duty = duty_service.create_duty(
             data=serializer.validated_data,
@@ -70,19 +87,27 @@ class DutyView(ListCreateAPIView):
 
 class DutyDetailView(RetrieveUpdateDestroyAPIView):
     serializer_class = DutySerializer
+    permission_classes = [IsOrgAdmin]
 
     def get_queryset(self):
-        return Duty.objects.select_related(
+        queryset = Duty.objects.select_related(
             'organization', 'location', 'category', 'approved_by'
-        ).prefetch_related('duty_users__user', 'duty_users__transport', 'files').all()
+        ).prefetch_related('duty_users__user', 'duty_users__transport', 'files')
+
+        if self.request.user.is_superuser:
+            return queryset.all()
+
+        return queryset.filter(organization=self.request.user.organization)
 
     def get(self, request, pk):
-        instance = get_object_or_404(Duty, id=pk)
+        queryset = self.get_queryset()
+        instance = get_object_or_404(queryset, id=pk)
         serializer = DutyDetailSerializer(instance)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     def put(self, request, pk):
-        instance = get_object_or_404(Duty, id=pk)
+        queryset = self.get_queryset()
+        instance = get_object_or_404(queryset, id=pk)
 
         if not duty_service.can_edit_duty(instance, request.user):
             return Response(
@@ -98,7 +123,8 @@ class DutyDetailView(RetrieveUpdateDestroyAPIView):
         return Response(response_serializer.data, status.HTTP_202_ACCEPTED)
 
     def delete(self, request, pk):
-        instance = get_object_or_404(Duty, id=pk)
+        queryset = self.get_queryset()
+        instance = get_object_or_404(queryset, id=pk)
 
         if instance.status != 'pending':
             return Response(
@@ -117,7 +143,8 @@ class DutyDetailView(RetrieveUpdateDestroyAPIView):
 
 
 class DutyApproveView(CreateAPIView):
-    permission_classes = [IsAuthenticated]
+    """Faqat superadmin tasdiqlashi mumkin"""
+    permission_classes = [IsSuperAdmin]
     serializer_class = DutyApproveSerializer
 
     def post(self, request, pk):
@@ -135,7 +162,8 @@ class DutyApproveView(CreateAPIView):
 
 
 class DutyRejectView(UpdateAPIView):
-    permission_classes = [IsAuthenticated]
+    """Faqat superadmin rad etishi mumkin"""
+    permission_classes = [IsSuperAdmin]
     serializer_class = DutyRejectSerializer
 
     def post(self, request, pk):
@@ -157,7 +185,8 @@ class DutyRejectView(UpdateAPIView):
 
 
 class DutyActivateView(CreateAPIView):
-    permission_classes = [IsAuthenticated]
+    """Faqat superadmin faollashtirishi mumkin"""
+    permission_classes = [IsSuperAdmin]
     serializer_class = DutyApproveSerializer
 
     def post(self, request, pk):
@@ -172,6 +201,7 @@ class DutyActivateView(CreateAPIView):
 
 
 class DutyCompleteView(CreateAPIView):
+    """Superadmin yoki tasdiqlagan user yakunlashi mumkin"""
     permission_classes = [IsAuthenticated]
     serializer_class = DutyApproveSerializer
 
@@ -187,7 +217,8 @@ class DutyCompleteView(CreateAPIView):
 
 
 class DutyCancelView(CreateAPIView):
-    permission_classes = [IsAuthenticated]
+    """Faqat superadmin bekor qilishi mumkin"""
+    permission_classes = [IsSuperAdmin]
     serializer_class = DutyCancelSerializer
 
     def post(self, request, pk):
@@ -210,15 +241,28 @@ class DutyCancelView(CreateAPIView):
 
 class DutyFileView(ListCreateAPIView):
     """Duty ga tegishli fayllarni ko'rish va qo'shish"""
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsOrgAdmin]
     serializer_class = DutyFileSerializer
 
     def get_queryset(self):
         duty_id = self.kwargs.get('duty_id')
-        return DutyFile.objects.filter(duty_id=duty_id)
+        queryset = DutyFile.objects.filter(duty_id=duty_id)
+
+        if self.request.user.is_superuser:
+            return queryset
+
+        # Faqat o'z organizatsiyasidagi duty fayllarini ko'radi
+        return queryset.filter(duty__organization=self.request.user.organization)
 
     def post(self, request, duty_id):
         duty = get_object_or_404(Duty, id=duty_id)
+
+        # Organizatsiya tekshiruvi
+        if not request.user.is_superuser and duty.organization != request.user.organization:
+            return Response(
+                {'detail': 'Siz faqat o\'z organizatsiyangiz navbatchiligiga fayl qo\'sha olasiz'},
+                status=status.HTTP_403_FORBIDDEN
+            )
 
         if not duty_service.can_edit_duty(duty, request.user):
             return Response(
@@ -238,14 +282,18 @@ class DutyFileView(ListCreateAPIView):
 
 class DutyFileDetailView(RetrieveUpdateDestroyAPIView):
     """Duty faylini ko'rish, yangilash va o'chirish"""
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsOrgAdmin]
     serializer_class = DutyFileSerializer
 
     def get_queryset(self):
-        return DutyFile.objects.all()
+        if self.request.user.is_superuser:
+            return DutyFile.objects.all()
+
+        return DutyFile.objects.filter(duty__organization=self.request.user.organization)
 
     def delete(self, request, pk):
-        duty_file = get_object_or_404(DutyFile, id=pk)
+        queryset = self.get_queryset()
+        duty_file = get_object_or_404(queryset, id=pk)
 
         if not duty_service.can_edit_duty(duty_file.duty, request.user):
             return Response(

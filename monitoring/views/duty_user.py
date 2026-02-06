@@ -1,20 +1,25 @@
 from rest_framework import status
 from rest_framework.generics import get_object_or_404, CreateAPIView, UpdateAPIView, DestroyAPIView
-from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from monitoring.models import Duty, DutyUser
 from monitoring.serializers.duty_user import DutyUserSerializer
 from monitoring.services import duty_user_service
+from users.utils.permissions import IsOrgAdmin
 
 
 class DutyUserAddView(CreateAPIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsOrgAdmin]
     serializer_class = DutyUserSerializer
 
+    def get_duty(self, pk, user):
+        """Duty ni olish va organizatsiya tekshiruvi"""
+        if user.is_superuser:
+            return get_object_or_404(Duty, id=pk)
+        return get_object_or_404(Duty, id=pk, organization=user.organization)
 
     def post(self, request, pk):
-        duty = get_object_or_404(Duty, id=pk)
+        duty = self.get_duty(pk, request.user)
 
         serializer = DutyUserSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -36,11 +41,17 @@ class DutyUserAddView(CreateAPIView):
 
 
 class DutyUserUpdateView(UpdateAPIView, DestroyAPIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsOrgAdmin]
     serializer_class = DutyUserSerializer
 
+    def get_duty(self, pk, user):
+        """Duty ni olish va organizatsiya tekshiruvi"""
+        if user.is_superuser:
+            return get_object_or_404(Duty, id=pk)
+        return get_object_or_404(Duty, id=pk, organization=user.organization)
+
     def put(self, request, pk, user_pk):
-        duty = get_object_or_404(Duty, id=pk)
+        duty = self.get_duty(pk, request.user)
         duty_user = get_object_or_404(DutyUser, duty=duty, id=user_pk)
 
         try:
@@ -56,9 +67,8 @@ class DutyUserUpdateView(UpdateAPIView, DestroyAPIView):
         except Exception as e:
             return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
-
     def delete(self, request, pk, user_pk):
-        duty = get_object_or_404(Duty, id=pk)
+        duty = self.get_duty(pk, request.user)
         duty_user = get_object_or_404(DutyUser, duty=duty, id=user_pk)
 
         try:

@@ -1,8 +1,12 @@
 from django.utils.translation import gettext_lazy as _
 from django.db import transaction
+from django.contrib.auth import get_user_model
 from rest_framework.exceptions import ValidationError
 
 from monitoring.models import Duty, DutyUser, DutyStatus, DutyUserStatus
+from fleet.models import Transport
+
+User = get_user_model()
 
 
 @transaction.atomic
@@ -16,6 +20,31 @@ def add_user_to_duty(duty, user_id, transport_id=None, is_driver=False, created_
         raise ValidationError({
             'detail': _("Bu user allaqachon duty ga qo'shilgan")
         })
+
+    # User organizatsiyasi tekshiruvi
+    try:
+        user = User.objects.get(id=user_id)
+        if user.organization and user.organization != duty.organization:
+            raise ValidationError({
+                'detail': _("User boshqa organizatsiyaga tegishli")
+            })
+    except User.DoesNotExist:
+        raise ValidationError({
+            'detail': _("User topilmadi")
+        })
+
+    # Transport organizatsiyasi tekshiruvi
+    if transport_id:
+        try:
+            transport = Transport.objects.get(id=transport_id)
+            if transport.organization != duty.organization:
+                raise ValidationError({
+                    'detail': _("Transport boshqa organizatsiyaga tegishli")
+                })
+        except Transport.DoesNotExist:
+            raise ValidationError({
+                'detail': _("Transport topilmadi")
+            })
 
     duty_user = DutyUser.objects.create(
         duty=duty,
@@ -40,7 +69,19 @@ def update_duty_user(duty_user, transport_id=None, is_driver=None, updated_by=No
             'detail': _("Faqat pending yoki approved statusdagi duty userni yangilash mumkin")
         })
 
+    # Transport organizatsiyasi tekshiruvi
     if transport_id is not None:
+        if transport_id:
+            try:
+                transport = Transport.objects.get(id=transport_id)
+                if transport.organization != duty_user.duty.organization:
+                    raise ValidationError({
+                        'detail': _("Transport boshqa organizatsiyaga tegishli")
+                    })
+            except Transport.DoesNotExist:
+                raise ValidationError({
+                    'detail': _("Transport topilmadi")
+                })
         duty_user.transport_id = transport_id
 
     if is_driver is not None:

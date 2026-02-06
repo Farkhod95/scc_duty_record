@@ -11,6 +11,7 @@ from monitoring.serializers.duty_category import DutyCategorySerializer, DutyCat
 from monitoring.filterset import DutyCategoryFilter
 from restapp.pagination import ResultsSetPagination
 from restapp.utils.responses import nonContent
+from users.utils.permissions import IsSuperAdmin
 
 
 class DutyCategoryFieldInfoView(APIView):
@@ -33,12 +34,21 @@ class DutyCategoryFieldInfoView(APIView):
 
 
 class DutyCategoryView(ListCreateAPIView):
+    """
+    GET - Barcha autentifikatsiya qilingan userlar ko'rishi mumkin
+    POST - Faqat superadmin yaratishi mumkin
+    """
     serializer_class = DutyCategoryListSerializer
     pagination_class = ResultsSetPagination
     filter_backends = (filters.SearchFilter, filters.OrderingFilter, DjangoFilterBackend)
     filterset_class = DutyCategoryFilter
     search_fields = ('name', 'description')
     ordering = ['name']
+
+    def get_permissions(self):
+        if self.request.method == 'POST':
+            return [IsSuperAdmin()]
+        return [IsAuthenticated()]
 
     def get_queryset(self):
         return DutyCategory.objects.all()
@@ -51,7 +61,16 @@ class DutyCategoryView(ListCreateAPIView):
 
 
 class DutyCategoryDetailView(RetrieveUpdateDestroyAPIView):
+    """
+    GET - Barcha autentifikatsiya qilingan userlar ko'rishi mumkin
+    PUT/DELETE - Faqat superadmin
+    """
     serializer_class = DutyCategorySerializer
+
+    def get_permissions(self):
+        if self.request.method in ['PUT', 'PATCH', 'DELETE']:
+            return [IsSuperAdmin()]
+        return [IsAuthenticated()]
 
     def get_queryset(self):
         return DutyCategory.objects.all()
