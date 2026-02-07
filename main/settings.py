@@ -64,7 +64,7 @@ MIDDLEWARE = [
 CORS_ORIGIN_ALLOW_ALL = False
 
 CORS_ALLOWED_ORIGINS = [
-    "http://192.168.168.17:3030",
+    "http://192.168.168.17:3033",
     "http://192.168.168.17",
     "http://192.168.168.17:8080",
     "http://localhost:3000",  # agar lokalda ishlayotgan bo‘lsa
