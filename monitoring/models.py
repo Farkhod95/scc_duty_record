@@ -160,9 +160,9 @@ class Task(BaseModel):
         _('End time'), null=True, blank=True,
         help_text=_("Tugash vaqti")
     )
-    location = models.CharField(
-        _('Location'), max_length=500, null=True, blank=True,
-        help_text=_("Joy nomi")
+    location = models.ForeignKey(
+        'directory.Location', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='tasks', help_text=_("Joy/hudud")
     )
     description = models.TextField(
         _('Description'), null=True, blank=True,

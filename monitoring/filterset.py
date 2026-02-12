@@ -24,6 +24,7 @@ class TaskFilter(FilterSet):
         fields = {
             'task_type': ['exact'],
             'duty_section': ['exact'],
+            'location': ['exact'],
         }
 
 

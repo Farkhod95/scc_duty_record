@@ -18,7 +18,7 @@ class TaskView(ListCreateAPIView):
     pagination_class = ResultsSetPagination
     filter_backends = (filters.SearchFilter, filters.OrderingFilter, DjangoFilterBackend)
     filterset_class = TaskFilter
-    search_fields = ('title', 'location')
+    search_fields = ('title', 'location__title')
 
     def get_section(self):
         queryset = DutySection.objects.select_related('main_duty__organization')
@@ -32,7 +32,7 @@ class TaskView(ListCreateAPIView):
         section = self.get_section()
         return Task.objects.filter(
             duty_section=section
-        ).annotate(assignments_count=Count('assignments'))
+        ).select_related('location').annotate(assignments_count=Count('assignments'))
 
     def post(self, request, section_id):
         section = self.get_section()
@@ -57,7 +57,7 @@ class TaskDetailView(RetrieveUpdateDestroyAPIView):
 
     def get_queryset(self):
         queryset = Task.objects.select_related(
-            'duty_section__main_duty__organization'
+            'duty_section__main_duty__organization', 'location'
         )
         if not self.request.user.is_superuser:
             queryset = queryset.filter(
