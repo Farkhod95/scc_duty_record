@@ -33,6 +33,7 @@ class DutySectionSerializer(serializers.ModelSerializer):
 
 class DutySectionListSerializer(serializers.ModelSerializer):
     tasks_count = serializers.IntegerField(read_only=True)
+    main_duty_name = serializers.CharField(source='main_duty.title', read_only=True, default=None)
     section_type_name = serializers.CharField(source='section_type.name', read_only=True, default=None)
 
     class Meta:
@@ -40,6 +41,7 @@ class DutySectionListSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'main_duty', 'section_type', 'section_type_name',
             'name', 'sort_order', 'tasks_count', 'created_time',
+            'main_duty_name'
         ]
 
 
