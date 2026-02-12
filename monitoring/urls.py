@@ -1,47 +1,40 @@
 from django.urls import path, re_path
+
 from monitoring.views import (
-    DutyCategoryView,
-    DutyCategoryDetailView,
-    DutyCategoryFieldInfoView,
-
-    DutyView,
-    DutyDetailView,
-    DutyFieldInfoView,
-    DutyApproveView,
-    DutyRejectView,
-    DutyActivateView,
-    DutyCompleteView,
-    DutyCancelView,
-    DutyFileView,
-    DutyFileDetailView,
-
-    DutyUserAddView,
-    DutyUserUpdateView,
+    MainDutyView, MainDutyDetailView,
+    MainDutySendForApprovalView, MainDutyApproveView, MainDutyRejectView,
+    DutySectionView, DutySectionDetailView,
+    TaskView, TaskDetailView,
+    TaskAssignmentView, TaskAssignmentDetailView,
+    DutyFileView, DutyFileDetailView,
+    DailyDutyOfficerView, DailyDutyOfficerDetailView,
 )
 
 urlpatterns = [
-    # DutyCategory endpoints
-    re_path(r'^duty-category/$', DutyCategoryView.as_view(), name='duty_category_view'),
-    path('duty-category/<int:pk>', DutyCategoryDetailView.as_view(), name='duty_category_detail_view'),
-    path('duty-category/fields/', DutyCategoryFieldInfoView.as_view(), name='duty_category_fields_info'),
+    # MainDuty
+    re_path(r'^main-duty/$', MainDutyView.as_view(), name='main_duty_view'),
+    path('main-duty/<int:pk>', MainDutyDetailView.as_view(), name='main_duty_detail_view'),
+    path('main-duty/<int:pk>/send-for-approval/', MainDutySendForApprovalView.as_view(), name='main_duty_send_for_approval'),
+    path('main-duty/<int:pk>/approve/', MainDutyApproveView.as_view(), name='main_duty_approve'),
+    path('main-duty/<int:pk>/reject/', MainDutyRejectView.as_view(), name='main_duty_reject'),
 
-    # Duty endpoints
-    re_path(r'^duty/$', DutyView.as_view(), name='duty_view'),
-    path('duty/<int:pk>', DutyDetailView.as_view(), name='duty_detail_view'),
-    path('duty/fields/', DutyFieldInfoView.as_view(), name='duty_fields_info'),
+    # DutySection (nested under main-duty)
+    path('main-duty/<int:main_duty_id>/sections/', DutySectionView.as_view(), name='duty_section_view'),
+    path('main-duty/<int:main_duty_id>/sections/<int:pk>', DutySectionDetailView.as_view(), name='duty_section_detail_view'),
 
-    # Duty actions
-    path('duty/<int:pk>/approve/', DutyApproveView.as_view(), name='duty_approve'),
-    path('duty/<int:pk>/reject/', DutyRejectView.as_view(), name='duty_reject'),
-    path('duty/<int:pk>/activate/', DutyActivateView.as_view(), name='duty_activate'),
-    path('duty/<int:pk>/complete/', DutyCompleteView.as_view(), name='duty_complete'),
-    path('duty/<int:pk>/cancel/', DutyCancelView.as_view(), name='duty_cancel'),
+    # Task (nested under section)
+    path('sections/<int:section_id>/tasks/', TaskView.as_view(), name='task_view'),
+    path('sections/<int:section_id>/tasks/<int:pk>', TaskDetailView.as_view(), name='task_detail_view'),
 
-    # Duty File endpoints
-    path('duty/<int:duty_id>/files/', DutyFileView.as_view(), name='duty_file_view'),
-    path('duty/files/<int:pk>', DutyFileDetailView.as_view(), name='duty_file_detail_view'),
+    # TaskAssignment (nested under task)
+    path('tasks/<int:task_id>/assignments/', TaskAssignmentView.as_view(), name='task_assignment_view'),
+    path('tasks/<int:task_id>/assignments/<int:pk>', TaskAssignmentDetailView.as_view(), name='task_assignment_detail_view'),
 
-    # Duty User endpoints
-    path('duty/<int:pk>/users/', DutyUserAddView.as_view(), name='duty_user_add'),
-    path('duty/<int:pk>/users/<int:user_pk>', DutyUserUpdateView.as_view(), name='duty_user_update'),
+    # DutyFile (nested under main-duty)
+    path('main-duty/<int:main_duty_id>/files/', DutyFileView.as_view(), name='duty_file_view'),
+    path('main-duty/files/<int:pk>', DutyFileDetailView.as_view(), name='duty_file_detail_view'),
+
+    # DailyDutyOfficer
+    re_path(r'^daily-duty-officer/$', DailyDutyOfficerView.as_view(), name='daily_duty_officer_view'),
+    path('daily-duty-officer/<int:pk>', DailyDutyOfficerDetailView.as_view(), name='daily_duty_officer_detail_view'),
 ]

@@ -1,84 +1,217 @@
+from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils.translation import gettext_lazy as _
-from restapp.models import BaseModel
 from django.contrib.auth import get_user_model
+
+from restapp.models import BaseModel
 
 User = get_user_model()
 
 
-class DutyStatus(models.TextChoices):
-    PENDING = 'pending', _('Pending')
-    APPROVED = 'approved', _('Approved')
-    REJECTED = 'rejected', _('Rejected')
-    ACTIVE = 'active', _('Active')
-    COMPLETED = 'completed', _('Completed')
-    CANCELLED = 'cancelled', _('Cancelled')
+# --- TextChoices ---
 
-class ChangeRequestStatus(models.TextChoices):
-    PENDING = 'pending', _('Pending')
-    APPROVED = 'approved', _('Approved')
-    REJECTED = 'rejected', _('Rejected')
-
-class DutyUserStatus(models.TextChoices):
-    ON_DUTY = 'on_duty', _('On duty')
-    BREAK = 'break', _('Break')
-    SOS = 'sos', _('SOS')
-    OFFLINE = 'offline', _('Offline')
+class MainDutyStatus(models.TextChoices):
+    DRAFT = 'DRAFT', _('Draft')
+    SENT_FOR_APPROVAL = 'SENT_FOR_APPROVAL', _('Sent for approval')
+    APPROVED = 'APPROVED', _('Approved')
+    REJECTED = 'REJECTED', _('Rejected')
 
 
-class DutyCategory(BaseModel):
-    name = models.CharField(_('Name'), max_length=255, help_text=_("Kategoriya nomi"))
-    description = models.TextField(_('Description'), null=True, blank=True, help_text=_("Kategoriya haqida ma'lumot"))
-    is_active = models.BooleanField(_('Is active'), default=True, help_text=_("Faolmi?"))
-    is_manu = models.BooleanField(_('Is manu'), default=False, help_text=_("Navbatdagi manu?"))
+class TaskType(models.TextChoices):
+    DUTY = 'DUTY', _('Duty')
+    EVENT = 'EVENT', _('Event')
+
+
+class RoleInTransport(models.TextChoices):
+    DRIVER = 'DRIVER', _('Driver')
+    PASSENGER = 'PASSENGER', _('Passenger')
+    NONE = 'NONE', _('None')
+
+
+# --- Models ---
+
+class MainDuty(BaseModel):
+    organization = models.ForeignKey(
+        'directory.Organization', on_delete=models.CASCADE,
+        related_name='main_duties', help_text=_("Navbatchilik tegishli tashkilot")
+    )
+    title = models.CharField(
+        _('Title'), max_length=255, help_text=_("Navbatchilik nomi")
+    )
+    duty_date = models.DateField(
+        _('Duty date'), help_text=_("Navbatchilik sanasi")
+    )
+    start_time = models.DateTimeField(
+        _('Start time'), help_text=_("Boshlanish vaqti")
+    )
+    end_time = models.DateTimeField(
+        _('End time'), help_text=_("Tugash vaqti")
+    )
+    status = models.CharField(
+        _('Status'), max_length=30,
+        choices=MainDutyStatus.choices, default=MainDutyStatus.DRAFT,
+        help_text=_("Navbatchilik holati")
+    )
+    approved_by = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='approved_main_duties', help_text=_("Kim tasdiqladi")
+    )
+    approved_at = models.DateTimeField(
+        _('Approved at'), null=True, blank=True,
+        help_text=_("Tasdiqlangan vaqt")
+    )
+    rejection_reason = models.TextField(
+        _('Rejection reason'), null=True, blank=True,
+        help_text=_("Rad etish sababi")
+    )
 
     class Meta:
-        verbose_name = _("Duty category")
-        verbose_name_plural = _("Duty categories")
-        ordering = ['name']
-        indexes = [
-            models.Index(fields=['is_active']),
-        ]
-
-    def __str__(self):
-        return f"{self.name}"
-
-
-class Duty(BaseModel):
-    organization = models.ForeignKey('directory.Organization', on_delete=models.CASCADE, related_name='duties', help_text=_("Navbatchilik tegishli tashkilot"))
-    location = models.ForeignKey('directory.Location', on_delete=models.CASCADE, related_name='duties', null=True, blank=True, help_text=_("Navbatchilik tegishli location"))
-    category = models.ForeignKey(DutyCategory, on_delete=models.PROTECT, related_name='duties', help_text=_("Navbatchilik kategoriyasi"))
-    name = models.CharField(_('Name'), max_length=255, help_text=_("Navbatchilik nomi"))
-    start_time = models.DateTimeField(_('Start time'), help_text=_("Boshlanish vaqti"))
-    end_time = models.DateTimeField(_('End time'), help_text=_("Tugash vaqti"))
-    status = models.CharField(_('Status'), max_length=20, choices=DutyStatus.choices, default=DutyStatus.PENDING, help_text=_("Navbatchilik holati"))
-    approved_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='approved_duties', help_text=_("Kim tasdiqladi"))
-    approved_at = models.DateTimeField(_('Approved at'), null=True, blank=True, help_text=_("Tasdiqlangan vaqt"))
-    rejection_reason = models.TextField(_('Rejection reason'), null=True, blank=True, help_text=_("Agar status rejected bo'lsa, sababi"))
-
-    class Meta:
-        verbose_name = _("Duty")
-        verbose_name_plural = _("Duties")
+        verbose_name = _("Main duty")
+        verbose_name_plural = _("Main duties")
         ordering = ['-start_time']
         indexes = [
             models.Index(fields=['organization', 'status']),
+            models.Index(fields=['duty_date']),
             models.Index(fields=['start_time', 'end_time']),
             models.Index(fields=['status']),
         ]
 
     def __str__(self):
-        return f"{self.name} - {self.get_status_display()}"
+        return f"{self.title} - {self.get_status_display()}"
 
-    def is_active(self):
-        from django.utils import timezone
-        now = timezone.now()
-        return self.start_time <= now <= self.end_time and self.status in [DutyStatus.ACTIVE, DutyStatus.APPROVED]
+    def clean(self):
+        super().clean()
+        if self.start_time and self.end_time and self.start_time >= self.end_time:
+            raise ValidationError({
+                'end_time': _("Tugash vaqti boshlanish vaqtidan keyin bo'lishi kerak.")
+            })
+
+
+class DutySection(BaseModel):
+    main_duty = models.ForeignKey(
+        MainDuty, on_delete=models.CASCADE,
+        related_name='sections', help_text=_("Qaysi navbatchilikka tegishli")
+    )
+    name = models.CharField(
+        _('Name'), max_length=255, help_text=_("Bo'lim nomi")
+    )
+    sort_order = models.PositiveIntegerField(
+        _('Sort order'), default=0, help_text=_("Tartiblash raqami")
+    )
+
+    class Meta:
+        verbose_name = _("Duty section")
+        verbose_name_plural = _("Duty sections")
+        ordering = ['sort_order']
+        indexes = [
+            models.Index(fields=['main_duty', 'sort_order']),
+        ]
+
+    def __str__(self):
+        return f"{self.name} ({self.main_duty.title})"
+
+
+class Task(BaseModel):
+    duty_section = models.ForeignKey(
+        DutySection, on_delete=models.CASCADE,
+        related_name='tasks', help_text=_("Qaysi bo'limga tegishli")
+    )
+    title = models.CharField(
+        _('Title'), max_length=255, help_text=_("Vazifa nomi")
+    )
+    task_type = models.CharField(
+        _('Task type'), max_length=20,
+        choices=TaskType.choices, default=TaskType.DUTY,
+        help_text=_("Vazifa turi")
+    )
+    start_time = models.DateTimeField(
+        _('Start time'), null=True, blank=True,
+        help_text=_("Boshlanish vaqti")
+    )
+    end_time = models.DateTimeField(
+        _('End time'), null=True, blank=True,
+        help_text=_("Tugash vaqti")
+    )
+    location = models.CharField(
+        _('Location'), max_length=500, null=True, blank=True,
+        help_text=_("Joy nomi")
+    )
+    description = models.TextField(
+        _('Description'), null=True, blank=True,
+        help_text=_("Vazifa tavsifi")
+    )
+
+    class Meta:
+        verbose_name = _("Task")
+        verbose_name_plural = _("Tasks")
+        ordering = ['id']
+        indexes = [
+            models.Index(fields=['duty_section', 'task_type']),
+            models.Index(fields=['task_type']),
+        ]
+
+    def __str__(self):
+        return f"{self.title} ({self.get_task_type_display()})"
+
+
+class TaskAssignment(BaseModel):
+    task = models.ForeignKey(
+        Task, on_delete=models.CASCADE,
+        related_name='assignments', help_text=_("Qaysi vazifa")
+    )
+    employee = models.ForeignKey(
+        User, on_delete=models.CASCADE,
+        related_name='task_assignments', help_text=_("Tayinlangan xodim")
+    )
+    transport = models.ForeignKey(
+        'fleet.Transport', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='task_assignments', help_text=_("Transport vositasi")
+    )
+    role_in_transport = models.CharField(
+        _('Role in transport'), max_length=20,
+        choices=RoleInTransport.choices, default=RoleInTransport.NONE,
+        help_text=_("Transportdagi roli")
+    )
+    note = models.TextField(
+        _('Note'), null=True, blank=True,
+        help_text=_("Izoh")
+    )
+
+    class Meta:
+        verbose_name = _("Task assignment")
+        verbose_name_plural = _("Task assignments")
+        ordering = ['id']
+        unique_together = [['task', 'employee']]
+
+    def __str__(self):
+        return f"{self.employee.get_full_name()} - {self.task.title}"
+
+    def clean(self):
+        super().clean()
+        main_duty = self.task.duty_section.main_duty
+        if self.employee.organization_id != main_duty.organization_id:
+            raise ValidationError({
+                'employee': _("Xodim navbatchilik tashkilotiga tegishli bo'lishi kerak.")
+            })
+        if self.transport and self.transport.organization_id != main_duty.organization_id:
+            raise ValidationError({
+                'transport': _("Transport navbatchilik tashkilotiga tegishli bo'lishi kerak.")
+            })
 
 
 class DutyFile(BaseModel):
-    duty = models.ForeignKey(Duty, on_delete=models.CASCADE, related_name='files', help_text=_("Qaysi navbatchilik uchun"))
-    file = models.FileField(_('File'), upload_to='duties/%Y/%m/%d/', help_text=_("Fayl"))
-    name = models.CharField(_('Name'), max_length=255, null=True, blank=True, help_text=_("Fayl nomi"))
+    main_duty = models.ForeignKey(
+        MainDuty, on_delete=models.CASCADE,
+        related_name='files', help_text=_("Qaysi navbatchilik uchun")
+    )
+    file = models.FileField(
+        _('File'), upload_to='duties/%Y/%m/%d/',
+        help_text=_("Fayl")
+    )
+    name = models.CharField(
+        _('Name'), max_length=255, null=True, blank=True,
+        help_text=_("Fayl nomi")
+    )
 
     class Meta:
         verbose_name = _("Duty file")
@@ -86,108 +219,46 @@ class DutyFile(BaseModel):
         ordering = ['-created_time']
 
     def __str__(self):
-        return f"{self.name or self.file.name} - {self.duty.name}"
+        return f"{self.name or self.file.name}"
 
 
-class DutyChangeRequest(BaseModel):
-    duty = models.ForeignKey(Duty, on_delete=models.CASCADE, related_name='change_requests', help_text=_("Qaysi navbatchilik uchun"))
-    requested_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='requested_duty_changes', help_text=_("Kim so'rov yubordi"))
-    old_user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='old_duty_assignments', help_text=_("Eski user (almashtirilayotgan)"))
-    new_user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='new_duty_assignments', help_text=_("Yangi user (o'rniga keluvchi)"))
-    reason = models.TextField(_('Reason'),help_text=_("Almashtirish sababi"))
-    attachment_file = models.FileField(_('Attachment'), upload_to='duty_change_requests/%Y/%m/%d/', null=True, blank=True, help_text=_("Qo'shimcha fayl (agar kerak bo'lsa)"))
-    status = models.CharField(_('Status'), max_length=20, choices=ChangeRequestStatus.choices, default=ChangeRequestStatus.PENDING, help_text=_("So'rov holati"))
-    response_note = models.TextField(_('Response note'), null=True, blank=True, help_text=_("Javob yoki izoh"))
-    processed_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='processed_duty_changes', help_text=_("Kim ko'rib chiqdi"))
-    processed_at = models.DateTimeField(_('Processed at'), null=True, blank=True, help_text=_("Ko'rib chiqilgan vaqt"))
+class DailyDutyOfficer(BaseModel):
+    organization = models.ForeignKey(
+        'directory.Organization', on_delete=models.CASCADE,
+        related_name='daily_duty_officers', help_text=_("Qaysi tashkilot")
+    )
+    officer = models.ForeignKey(
+        User, on_delete=models.CASCADE,
+        related_name='duty_officer_assignments', help_text=_("Tayinlangan dijur admin")
+    )
+    duty_date = models.DateField(
+        _('Duty date'), help_text=_("Qaysi kun uchun")
+    )
+    assigned_by = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='assigned_duty_officers', help_text=_("Kim tayinladi (Manager)")
+    )
+    note = models.TextField(
+        _('Note'), null=True, blank=True,
+        help_text=_("Izoh")
+    )
 
     class Meta:
-        verbose_name = _("Duty change request")
-        verbose_name_plural = _("Duty change requests")
-        ordering = ['-created_time']
+        verbose_name = _("Daily duty officer")
+        verbose_name_plural = _("Daily duty officers")
+        ordering = ['-duty_date']
+        unique_together = [['organization', 'duty_date']]
         indexes = [
-            models.Index(fields=['duty', 'status']),
-            models.Index(fields=['requested_by', 'status']),
-            models.Index(fields=['status']),
+            models.Index(fields=['organization', 'duty_date']),
         ]
 
     def __str__(self):
-        return f"So'rov #{self.id} - {self.duty.name} ({self.get_status_display()})"
+        return f"{self.officer.get_full_name()} - {self.duty_date}"
 
-    def approve(self, processed_by, note=None):
-        from django.utils import timezone
-        self.status = ChangeRequestStatus.APPROVED
-        self.processed_by = processed_by
-        self.processed_at = timezone.now()
-        if note:
-            self.response_note = note
-        self.save()
-
-    def reject(self, processed_by, note):
-        from django.utils import timezone
-        self.status = ChangeRequestStatus.REJECTED
-        self.processed_by = processed_by
-        self.processed_at = timezone.now()
-        self.response_note = note
-        self.save()
-
-
-class DutyUser(BaseModel):
-    duty = models.ForeignKey(Duty, on_delete=models.CASCADE, related_name='duty_users', help_text=_("Qaysi navbatchilik"))
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='duty_assignments', help_text=_("Navbatdagi user"))
-    transport = models.ForeignKey('fleet.Transport', on_delete=models.SET_NULL, null=True, blank=True, related_name='duty_users', help_text=_("Shu navbatda qaysi transportda?"))
-    # type = models.ForeignKey('DutyType', on_delete=models.SET_NULL, null=True, blank=True, related_name='duty_users', help_text=_("Navbat turi"))
-    is_driver = models.BooleanField(_('Is driver'), default=False, help_text=_("Haydovchimi?"))
-
-    # Notifications
-    is_notified = models.BooleanField(_('Is notified'), default=False, help_text=_("Xabarnoma yuborilganmi?"))
-    notified_at = models.DateTimeField(_('Notified at'), null=True, blank=True, help_text=_("Xabarnoma yuborilgan vaqt"))
-
-    # Check-in
-    check_in_time = models.DateTimeField(_('Check in time'), null=True, blank=True, help_text=_("Kelgan vaqti"))
-    check_in_photo = models.ImageField(_('Check in photo'), upload_to='duty_checkin/%Y/%m/%d/', null=True, blank=True, help_text=_("Kelganda tushirilgan foto"))
-    check_in_lat = models.FloatField(_('Check in latitude'), null=True, blank=True, help_text=_("Kelgan joy latitude"))
-    check_in_lon = models.FloatField(_('Check in longitude'), null=True, blank=True, help_text=_("Kelgan joy longitude")
-    )
-    check_in_verified = models.BooleanField(_('Check in verified'), default=False, help_text=_("Check-in tasdiqlangan")
-    )
-
-    # Check-out
-    check_out_time = models.DateTimeField(_('Check out time'), null=True, blank=True, help_text=_("Ketgan vaqti"))
-    check_out_lat = models.FloatField(_('Check out latitude'), null=True, blank=True, help_text=_("Ketgan joy latitude"))
-    check_out_lon = models.FloatField(_('Check out longitude'), null=True, blank=True, help_text=_("Ketgan joy longitude"))
-
-    # Current status
-    current_status = models.CharField(_('Current status'), max_length=20, choices=DutyUserStatus.choices, default=DutyUserStatus.OFFLINE, help_text=_("Hozirgi holat"))
-
-    class Meta:
-        verbose_name = _("Duty user")
-        verbose_name_plural = _("Duty users")
-        ordering = ['-created_time']
-        unique_together = [['duty', 'user']]
-        indexes = [
-            models.Index(fields=['duty', 'user']),
-            models.Index(fields=['current_status']),
-            models.Index(fields=['check_in_time']),
-        ]
-
-    def __str__(self):
-        return f"{self.user.get_full_name()} - {self.duty.name}"
-
-    def check_in(self, lat=None, lon=None, photo=None):
-        from django.utils import timezone
-        self.check_in_time = timezone.now()
-        self.check_in_lat = lat
-        self.check_in_lon = lon
-        if photo:
-            self.check_in_photo = photo
-        self.current_status = DutyUserStatus.ON_DUTY
-        self.save()
-
-    def check_out(self, lat=None, lon=None):
-        from django.utils import timezone
-        self.check_out_time = timezone.now()
-        self.check_out_lat = lat
-        self.check_out_lon = lon
-        self.current_status = DutyUserStatus.OFFLINE
-        self.save()
+    def clean(self):
+        super().clean()
+        if self.officer and self.organization:
+            if self.officer.organization_id != self.organization_id:
+                raise ValidationError({
+                    'officer': _("Dijur admin tashkilotga tegishli bo'lishi kerak.")
+                })

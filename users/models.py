@@ -118,6 +118,9 @@ class User(AbstractUser):
         # oldingi: return self.role and self.role.name == 'Super Admin'
         return self.roles.filter(name__iexact='Super Admin').exists()
 
+    def is_manager(self) -> bool:
+        return self.roles.filter(name__iexact='Manager').exists()
+
 
 
 class UserJeton(models.Model):

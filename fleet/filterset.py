@@ -15,8 +15,8 @@ class TransportFilter(FilterSet):
     class Meta:
         model = Transport
         fields = {
-            'number': ['exact', 'icontains'],
-            'model': ['exact', 'icontains'],
+            'plate_number': ['exact', 'icontains'],
+            'name_or_code': ['exact', 'icontains'],
             'organization': ['exact'],
-            'type': ['exact'],
+            'transport_type': ['exact'],
         }

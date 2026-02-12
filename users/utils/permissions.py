@@ -25,6 +25,18 @@ class IsOrgAdmin(BasePermission):
         return request.user.organization is not None
 
 
+class IsManager(BasePermission):
+    """Manager roli uchun ruxsat (superadmin ham o'tadi)"""
+    message = "Faqat Manager bu amalni bajarishi mumkin"
+
+    def has_permission(self, request, view):
+        if not request.user or not request.user.is_authenticated:
+            return False
+        if request.user.is_superuser:
+            return True
+        return hasattr(request.user, 'is_manager') and request.user.is_manager()
+
+
 class IsOrgMember(BasePermission):
     """Faqat o'z organizatsiyasidagi ma'lumotlarni ko'rish/tahrirlash"""
     message = "Siz faqat o'z organizatsiyangiz ma'lumotlarini ko'ra olasiz"

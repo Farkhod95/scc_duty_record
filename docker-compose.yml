@@ -15,7 +15,7 @@ services:
       - PYTHONUNBUFFERED=1
     depends_on:
       - db
-    entrypoint: ["./wait-for-it.sh", "db:5432", "--"]
+#    entrypoint: ["./wait-for-it.sh", "db:5432", "--"]
     command: ["daphne", "-b", "0.0.0.0", "-p", "8000", "main.asgi:application"]
 
   db:

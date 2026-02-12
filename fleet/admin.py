@@ -10,8 +10,8 @@ class TransportTypeAdmin(admin.ModelAdmin):
 
 @admin.register(Transport)
 class TransportAdmin(admin.ModelAdmin):
-    list_display = ['number', 'model', 'type', 'organization', 'created_at']
-    list_filter = ['type', 'created_at']
-    search_fields = ['number', 'model', 'organization__name']
+    list_display = ['id', 'transport_type', 'name_or_code', 'plate_number', 'capacity', 'organization', 'created_at']
+    list_filter = ['transport_type', 'created_at']
+    search_fields = ['name_or_code', 'plate_number', 'number', 'model', 'organization__name']
     date_hierarchy = 'created_at'
     autocomplete_fields = ['organization']

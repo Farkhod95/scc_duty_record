@@ -39,24 +39,21 @@ class TransportView(ListCreateAPIView):
     pagination_class = ResultsSetPagination
     filter_backends = (filters.SearchFilter, filters.OrderingFilter, DjangoFilterBackend)
     filterset_class = TransportFilter
-    search_fields = ('number', 'model', 'organization__name')
+    search_fields = ('name_or_code', 'plate_number', 'number', 'model', 'organization__name')
     ordering = ['-created_time']
 
     def get_queryset(self):
-        queryset = Transport.objects.select_related('organization', 'type')
+        queryset = Transport.objects.select_related('organization')
 
-        # Superadmin barcha transportni ko'radi
         if self.request.user.is_superuser:
             return queryset.all()
 
-        # Oddiy user faqat o'z organizatsiyasi transportini ko'radi
         return queryset.filter(organization=self.request.user.organization)
 
     def post(self, request):
         serializer = TransportSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        # Organizatsiya tekshiruvi - faqat o'z organizatsiyasiga transport yaratishi mumkin
         org = serializer.validated_data.get('organization')
         if not request.user.is_superuser and org != request.user.organization:
             return Response(
@@ -73,7 +70,7 @@ class TransportDetailView(RetrieveUpdateDestroyAPIView):
     permission_classes = [IsOrgAdmin]
 
     def get_queryset(self):
-        queryset = Transport.objects.select_related('organization', 'type')
+        queryset = Transport.objects.select_related('organization')
 
         if self.request.user.is_superuser:
             return queryset.all()

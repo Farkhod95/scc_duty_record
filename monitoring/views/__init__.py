@@ -1,23 +1,9 @@
-from .duty_category import DutyCategoryView, DutyCategoryDetailView, DutyCategoryFieldInfoView
-from .duty import DutyFieldInfoView, DutyView, DutyDetailView, DutyApproveView, DutyRejectView, DutyActivateView, DutyCompleteView, DutyCancelView, DutyFileView, DutyFileDetailView
-from .duty_user import DutyUserAddView, DutyUserUpdateView
-
-__all__ = [
-    'DutyCategoryView',
-    'DutyCategoryDetailView',
-    'DutyCategoryFieldInfoView',
-
-    'DutyView',
-    'DutyDetailView',
-    'DutyFieldInfoView',
-    'DutyApproveView',
-    'DutyRejectView',
-    'DutyActivateView',
-    'DutyCompleteView',
-    'DutyCancelView',
-    'DutyFileView',
-    'DutyFileDetailView',
-
-    'DutyUserAddView',
-    'DutyUserUpdateView',
-]
+from monitoring.views.main_duty import (
+    MainDutyView, MainDutyDetailView,
+    MainDutySendForApprovalView, MainDutyApproveView, MainDutyRejectView,
+)
+from monitoring.views.duty_section import DutySectionView, DutySectionDetailView
+from monitoring.views.task import TaskView, TaskDetailView
+from monitoring.views.task_assignment import TaskAssignmentView, TaskAssignmentDetailView
+from monitoring.views.duty_file import DutyFileView, DutyFileDetailView
+from monitoring.views.daily_duty_officer import DailyDutyOfficerView, DailyDutyOfficerDetailView

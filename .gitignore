@@ -11,3 +11,4 @@ attachments/
 .gitlab-ci.yml
 wait-for-it.sh
 staticfiles/
+/.claude
