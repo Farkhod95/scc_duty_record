@@ -87,13 +87,39 @@ class MainDuty(BaseModel):
             })
 
 
+class DutySectionType(BaseModel):
+    name = models.CharField(
+        _('Name'), max_length=255, help_text=_("Bo'lim turi nomi")
+    )
+    organization = models.ForeignKey(
+        'directory.Organization', on_delete=models.CASCADE,
+        related_name='section_types', help_text=_("Qaysi tashkilotga tegishli")
+    )
+    sort_order = models.PositiveIntegerField(
+        _('Sort order'), default=0, help_text=_("Tartiblash raqami")
+    )
+
+    class Meta:
+        verbose_name = _("Duty section type")
+        verbose_name_plural = _("Duty section types")
+        ordering = ['sort_order']
+
+    def __str__(self):
+        return self.name
+
+
 class DutySection(BaseModel):
     main_duty = models.ForeignKey(
         MainDuty, on_delete=models.CASCADE, null=True, blank=True,
         related_name='sections', help_text=_("Qaysi navbatchilikka tegishli")
     )
+    section_type = models.ForeignKey(
+        DutySectionType, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='sections', help_text=_("Bo'lim turi")
+    )
     name = models.CharField(
-        _('Name'), max_length=255, help_text=_("Bo'lim nomi")
+        _('Name'), max_length=255, null=True, blank=True,
+        help_text=_("Bo'lim nomi (ixtiyoriy, type tanlanmasa)")
     )
     sort_order = models.PositiveIntegerField(
         _('Sort order'), default=0, help_text=_("Tartiblash raqami")
@@ -108,7 +134,9 @@ class DutySection(BaseModel):
         ]
 
     def __str__(self):
-        return f"{self.name} ({self.main_duty.title})"
+        label = self.section_type.name if self.section_type else self.name or ''
+        main_duty_title = self.main_duty.title if self.main_duty else ''
+        return f"{label} ({main_duty_title})"
 
 
 class Task(BaseModel):

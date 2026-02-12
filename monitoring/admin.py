@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.utils.translation import gettext_lazy as _
 
-from .models import MainDuty, DutySection, Task, TaskAssignment, DutyFile, DailyDutyOfficer
+from .models import MainDuty, DutySectionType, DutySection, Task, TaskAssignment, DutyFile, DailyDutyOfficer
 
 
 @admin.register(MainDuty)
@@ -12,11 +12,18 @@ class MainDutyAdmin(admin.ModelAdmin):
     readonly_fields = ['created_time', 'updated_time', 'created_by', 'updated_by', 'approved_at']
 
 
+@admin.register(DutySectionType)
+class DutySectionTypeAdmin(admin.ModelAdmin):
+    list_display = ['id', 'name', 'organization', 'sort_order']
+    list_filter = ['organization']
+    search_fields = ['name']
+
+
 @admin.register(DutySection)
 class DutySectionAdmin(admin.ModelAdmin):
-    list_display = ['id', 'name', 'main_duty', 'sort_order']
-    list_filter = ['main_duty']
-    search_fields = ['name']
+    list_display = ['id', 'section_type', 'name', 'main_duty', 'sort_order']
+    list_filter = ['main_duty', 'section_type']
+    search_fields = ['name', 'section_type__name']
 
 
 @admin.register(Task)

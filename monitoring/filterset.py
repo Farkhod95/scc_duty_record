@@ -1,6 +1,6 @@
 from django_filters import FilterSet, DateTimeFilter, DateFilter
 
-from monitoring.models import MainDuty, Task, DutySection, TaskAssignment, DailyDutyOfficer
+from monitoring.models import MainDuty, Task, DutySection, DutySectionType, TaskAssignment, DailyDutyOfficer
 
 
 class MainDutyFilter(FilterSet):
@@ -27,11 +27,21 @@ class TaskFilter(FilterSet):
         }
 
 
+class DutySectionTypeFilter(FilterSet):
+    class Meta:
+        model = DutySectionType
+        fields = {
+            'organization': ['exact'],
+            'name': ['exact', 'icontains'],
+        }
+
+
 class DutySectionFilter(FilterSet):
     class Meta:
         model = DutySection
         fields = {
             'main_duty': ['exact'],
+            'section_type': ['exact'],
             'name': ['exact', 'icontains'],
         }
 
