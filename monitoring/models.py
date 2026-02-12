@@ -89,7 +89,7 @@ class MainDuty(BaseModel):
 
 class DutySection(BaseModel):
     main_duty = models.ForeignKey(
-        MainDuty, on_delete=models.CASCADE,
+        MainDuty, on_delete=models.CASCADE, null=True, blank=True,
         related_name='sections', help_text=_("Qaysi navbatchilikka tegishli")
     )
     name = models.CharField(
@@ -201,7 +201,7 @@ class TaskAssignment(BaseModel):
 
 class DutyFile(BaseModel):
     main_duty = models.ForeignKey(
-        MainDuty, on_delete=models.CASCADE,
+        MainDuty, on_delete=models.CASCADE, null=True, blank=True,
         related_name='files', help_text=_("Qaysi navbatchilik uchun")
     )
     file = models.FileField(
