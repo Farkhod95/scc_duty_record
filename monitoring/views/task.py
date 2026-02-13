@@ -32,7 +32,7 @@ class TaskView(ListCreateAPIView):
         section = self.get_section()
         return Task.objects.filter(
             duty_section=section
-        ).select_related('location').annotate(assignments_count=Count('assignments'))
+        ).select_related('location__region', 'location__district').annotate(assignments_count=Count('assignments'))
 
     def post(self, request, section_id):
         section = self.get_section()
@@ -57,7 +57,7 @@ class TaskDetailView(RetrieveUpdateDestroyAPIView):
 
     def get_queryset(self):
         queryset = Task.objects.select_related(
-            'duty_section__main_duty__organization', 'location'
+            'duty_section__main_duty__organization', 'location__region', 'location__district'
         )
         if not self.request.user.is_superuser:
             queryset = queryset.filter(

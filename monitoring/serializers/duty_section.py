@@ -40,6 +40,8 @@ class DutySectionListSerializer(serializers.ModelSerializer):
         model = DutySection
         fields = [
             'id', 'main_duty', 'section_type', 'section_type_name',
+
+
             'name', 'sort_order', 'tasks_count', 'created_time',
             'main_duty_name'
         ]
