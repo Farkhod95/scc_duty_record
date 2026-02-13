@@ -19,6 +19,9 @@ class UserFilter(FilterSet):
     class Meta:
         model = User
         fields = {
+            'organization': ['exact'],
+            'department': ['exact'],
+            'position': ['exact'],
             'gender': ['exact'],
             'region': ['exact'],
             'pinfl': ['exact'],
@@ -28,6 +31,7 @@ class UserFilter(FilterSet):
             'jeton_number': ['exact'],
             'first_name': ['exact'],
             'last_name': ['exact'],
+            'is_active': ['exact'],
         }
     def filter_pinfl(self, qs, name, value):
         v = (value or '').strip()
