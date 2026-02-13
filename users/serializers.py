@@ -37,14 +37,17 @@ class UserSerializer(serializers.ModelSerializer):
     roles = serializers.PrimaryKeyRelatedField(
         many=True, queryset=Role.objects.all(), required=False
     )
+    organization_name = serializers.CharField(source='organization.name', read_only=True, default=None)
+    full_name = serializers.SerializerMethodField()
 
     class Meta:
         model = User
         fields = (
-            'id', 'username', 'last_name', 'first_name', 'second_name', 'is_active',
+            'id', 'username', 'last_name', 'first_name', 'second_name', 'full_name', 'is_active',
             'date_of_birthday', 'gender', 'phone_number', 'avatar', 'email', 'special_rank',
-            'date_joined', 'roles', 'password', 'organization', 'position', 'department',
-             'region', 'district', 'address', 'pinfl', 'passport_series',
+            'date_joined', 'roles', 'password', 'organization', 'organization_name',
+            'position', 'department',
+            'region', 'district', 'address', 'pinfl', 'passport_series',
             'passport_number', 'passport_given_by', 'begin_date', 'end_date', 'avatar_base64',
             'jeton_series', 'jeton_number', 'jeton_begin_date', 'work_region',
             'work_district'
@@ -55,6 +58,10 @@ class UserSerializer(serializers.ModelSerializer):
             },
             'password': {'write_only': True, 'required': False},
         }
+
+    def get_full_name(self, obj):
+        parts = [obj.last_name, obj.first_name, obj.second_name]
+        return ' '.join(p for p in parts if p)
 
     def create(self, validated_data):
         roles_ids = validated_data.pop('roles', [])
