@@ -1,11 +1,11 @@
-from rest_framework import status
+from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework import status, filters
 from rest_framework.generics import ListCreateAPIView, RetrieveUpdateDestroyAPIView, get_object_or_404
 from rest_framework.response import Response
 
 from monitoring.models import TaskAssignment, Task, MainDutyStatus
 from monitoring.serializers.task_assignment import TaskAssignmentSerializer, TaskAssignmentListSerializer
 from monitoring.filterset import TaskAssignmentFilter
-from django_filters.rest_framework import DjangoFilterBackend
 from restapp.pagination import ResultsSetPagination
 from restapp.utils.responses import nonContent
 from users.utils.permissions import IsOrgAdmin
@@ -15,8 +15,9 @@ class TaskAssignmentView(ListCreateAPIView):
     serializer_class = TaskAssignmentListSerializer
     permission_classes = [IsOrgAdmin]
     pagination_class = ResultsSetPagination
-    filter_backends = (DjangoFilterBackend,)
+    filter_backends = (filters.SearchFilter, filters.OrderingFilter, DjangoFilterBackend)
     filterset_class = TaskAssignmentFilter
+    search_fields = ('employee__first_name', 'employee__last_name')
 
     def get_task(self):
         queryset = Task.objects.select_related(

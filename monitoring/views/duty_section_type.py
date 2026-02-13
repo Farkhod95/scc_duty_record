@@ -7,6 +7,7 @@ from monitoring.models import DutySectionType
 from monitoring.serializers.duty_section import (
     DutySectionTypeSerializer, DutySectionTypeListSerializer,
 )
+from monitoring.filterset import DutySectionTypeFilter
 from restapp.pagination import ResultsSetPagination
 from restapp.utils.responses import nonContent
 from users.utils.permissions import IsOrgAdmin
@@ -17,6 +18,7 @@ class DutySectionTypeView(ListCreateAPIView):
     permission_classes = [IsOrgAdmin]
     pagination_class = ResultsSetPagination
     filter_backends = (filters.SearchFilter, filters.OrderingFilter, DjangoFilterBackend)
+    filterset_class = DutySectionTypeFilter
     search_fields = ('name',)
     ordering = ['sort_order']
 

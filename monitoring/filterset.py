@@ -1,6 +1,7 @@
-from django_filters import FilterSet, DateTimeFilter, DateFilter
+from django.db.models import Q
+from django_filters import FilterSet, DateTimeFilter, DateFilter, CharFilter
 
-from monitoring.models import MainDuty, Task, DutySection, DutySectionType, TaskAssignment, DailyDutyOfficer
+from monitoring.models import MainDuty, Task, DutySection, DutySectionType, TaskAssignment, DutyFile, DailyDutyOfficer
 
 
 class MainDutyFilter(FilterSet):
@@ -8,6 +9,7 @@ class MainDutyFilter(FilterSet):
     duty_date_to = DateFilter(field_name='duty_date', lookup_expr='lte')
     start_time_from = DateTimeFilter(field_name='start_time', lookup_expr='gte')
     start_time_to = DateTimeFilter(field_name='start_time', lookup_expr='lte')
+    list_type = CharFilter(method='filter_list_type')
 
     class Meta:
         model = MainDuty
@@ -15,7 +17,19 @@ class MainDutyFilter(FilterSet):
             'title': ['exact', 'icontains'],
             'organization': ['exact'],
             'status': ['exact'],
+            'created_by': ['exact'],
         }
+
+    def filter_list_type(self, queryset, name, value):
+        if value == 'new':
+            return queryset.filter(
+                status__in=['DRAFT', 'SENT_FOR_APPROVAL']
+            )
+        elif value == 'archive':
+            return queryset.filter(
+                status__in=['APPROVED', 'REJECTED']
+            )
+        return queryset
 
 
 class TaskFilter(FilterSet):
@@ -25,6 +39,8 @@ class TaskFilter(FilterSet):
             'task_type': ['exact'],
             'duty_section': ['exact'],
             'location': ['exact'],
+            'location__region': ['exact'],
+            'location__district': ['exact'],
         }
 
 
@@ -58,6 +74,14 @@ class TaskAssignmentFilter(FilterSet):
         }
 
 
+class DutyFileFilter(FilterSet):
+    class Meta:
+        model = DutyFile
+        fields = {
+            'name': ['exact', 'icontains'],
+        }
+
+
 class DailyDutyOfficerFilter(FilterSet):
     class Meta:
         model = DailyDutyOfficer
@@ -65,4 +89,5 @@ class DailyDutyOfficerFilter(FilterSet):
             'organization': ['exact'],
             'officer': ['exact'],
             'duty_date': ['exact', 'gte', 'lte'],
+            'assigned_by': ['exact'],
         }

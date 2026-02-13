@@ -1,10 +1,12 @@
-from rest_framework import status
+from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework import status, filters
 from rest_framework.generics import ListCreateAPIView, RetrieveUpdateDestroyAPIView, get_object_or_404
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.response import Response
 
 from monitoring.models import DutyFile, MainDuty
 from monitoring.serializers.duty_file import DutyFileSerializer, DutyFileListSerializer
+from monitoring.filterset import DutyFileFilter
 from restapp.pagination import ResultsSetPagination
 from restapp.utils.responses import nonContent
 from users.utils.permissions import IsOrgAdmin
@@ -15,6 +17,9 @@ class DutyFileView(ListCreateAPIView):
     permission_classes = [IsOrgAdmin]
     pagination_class = ResultsSetPagination
     parser_classes = [MultiPartParser, FormParser]
+    filter_backends = (filters.SearchFilter, DjangoFilterBackend)
+    filterset_class = DutyFileFilter
+    search_fields = ('name',)
 
     def get_main_duty(self):
         queryset = MainDuty.objects.all()

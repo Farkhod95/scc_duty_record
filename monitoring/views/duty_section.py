@@ -1,5 +1,6 @@
 from django.db.models import Count
-from rest_framework import status
+from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework import status, filters
 from rest_framework.generics import ListCreateAPIView, RetrieveUpdateDestroyAPIView, get_object_or_404
 from rest_framework.response import Response
 
@@ -7,6 +8,7 @@ from monitoring.models import DutySection, MainDuty, MainDutyStatus
 from monitoring.serializers.duty_section import (
     DutySectionSerializer, DutySectionListSerializer, DutySectionDetailSerializer,
 )
+from monitoring.filterset import DutySectionFilter
 from restapp.pagination import ResultsSetPagination
 from restapp.utils.responses import nonContent
 from users.utils.permissions import IsOrgAdmin
@@ -16,6 +18,9 @@ class DutySectionView(ListCreateAPIView):
     serializer_class = DutySectionListSerializer
     permission_classes = [IsOrgAdmin]
     pagination_class = ResultsSetPagination
+    filter_backends = (filters.SearchFilter, filters.OrderingFilter, DjangoFilterBackend)
+    filterset_class = DutySectionFilter
+    search_fields = ('name', 'section_type__name')
 
     def get_main_duty(self):
         queryset = MainDuty.objects.all()
@@ -27,7 +32,7 @@ class DutySectionView(ListCreateAPIView):
         main_duty = self.get_main_duty()
         return DutySection.objects.filter(
             main_duty=main_duty
-        ).annotate(tasks_count=Count('tasks'))
+        ).select_related('section_type').annotate(tasks_count=Count('tasks'))
 
     def post(self, request, main_duty_id):
         main_duty = self.get_main_duty()
@@ -51,7 +56,7 @@ class DutySectionDetailView(RetrieveUpdateDestroyAPIView):
     permission_classes = [IsOrgAdmin]
 
     def get_queryset(self):
-        queryset = DutySection.objects.select_related('main_duty__organization')
+        queryset = DutySection.objects.select_related('main_duty__organization', 'section_type')
         if not self.request.user.is_superuser:
             queryset = queryset.filter(
                 main_duty__organization=self.request.user.organization
