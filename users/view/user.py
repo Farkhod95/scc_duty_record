@@ -96,7 +96,7 @@ class UserView(ListCreateAPIView):
     ordering = ['-pk']
 
     def get_queryset(self):
-        queryset = User.objects.select_related('organization').all()
+        queryset = User.objects.select_related('organization', 'region', 'district').all()
 
         # Superadmin barcha userlarni ko'radi
         if self.request.user.is_superuser:

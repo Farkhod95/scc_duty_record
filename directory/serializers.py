@@ -209,10 +209,13 @@ class OrganizationSerializer(LocaleSerializer):
 
 
 class OrganizationListSerializer(LocaleSerializer):
+    region_name = serializers.CharField(source='region.name', read_only=True, default=None)
+    district_name = serializers.CharField(source='district.name', read_only=True, default=None)
+
     class Meta:
         model = Organization
         fields = ('id', 'name', 'number', 'code', 'name_uz', 'name_uz_cyrl', 'name_ru', 'name_kaa', 'region',
-                  'district')
+                  'region_name', 'district', 'district_name')
 
 
 class OrganizationListPublicSerializer(LocaleSerializer):

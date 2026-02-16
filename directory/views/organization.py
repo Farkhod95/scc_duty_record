@@ -40,7 +40,7 @@ class OrganizationView(ListCreateAPIView):
     ordering = ['pk']
 
     def get_queryset(self):
-        return Organization.objects.all()
+        return Organization.objects.select_related('region', 'district').all()
 
     def post(self, request):
         serializer = OrganizationSerializer(data=request.data)

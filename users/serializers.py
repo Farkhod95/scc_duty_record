@@ -38,6 +38,8 @@ class UserSerializer(serializers.ModelSerializer):
         many=True, queryset=Role.objects.all(), required=False
     )
     organization_name = serializers.CharField(source='organization.name', read_only=True, default=None)
+    region_name = serializers.CharField(source='region.name', read_only=True, default=None)
+    district_name = serializers.CharField(source='district.name', read_only=True, default=None)
     full_name = serializers.SerializerMethodField()
 
     class Meta:
@@ -47,7 +49,7 @@ class UserSerializer(serializers.ModelSerializer):
             'date_of_birthday', 'gender', 'phone_number', 'avatar', 'email', 'special_rank',
             'date_joined', 'roles', 'password', 'organization', 'organization_name',
             'position', 'department',
-            'region', 'district', 'address', 'pinfl', 'passport_series',
+            'region', 'region_name', 'district', 'district_name', 'address', 'pinfl', 'passport_series',
             'passport_number', 'passport_given_by', 'begin_date', 'end_date', 'avatar_base64',
             'jeton_series', 'jeton_number', 'jeton_begin_date', 'work_region',
             'work_district'
@@ -268,6 +270,8 @@ class UserMobilListPublicIdSerializer(serializers.ModelSerializer):
 class UserListSerializer(serializers.ModelSerializer):
     role_detail = RoleSerializer(source='roles', many=True, read_only=True)
     organization_detail = OrganizationSerializer(source='organization', read_only=True)
+    region_name = serializers.CharField(source='region.name', read_only=True, default=None)
+    district_name = serializers.CharField(source='district.name', read_only=True, default=None)
 
     class Meta:
         model = User
@@ -275,7 +279,8 @@ class UserListSerializer(serializers.ModelSerializer):
             'id', 'username', 'last_name', 'first_name', 'second_name', 'is_active', 'date_of_birthday', 'gender',
             'phone_number', 'avatar', 'email', 'special_rank', 'organization', 'organization_detail',
             'date_joined', 'roles', 'role_detail', 'password', 'organization', 'position', 'department', 'region',
-            'district', 'address', 'pinfl', 'passport_series', 'passport_number', 'passport_given_by', 'begin_date',
+            'region_name', 'district', 'district_name', 'address', 'pinfl', 'passport_series',
+            'passport_number', 'passport_given_by', 'begin_date',
             'end_date', 'avatar_base64', 'jeton_series', 'jeton_number', 'jeton_begin_date')
 
 
