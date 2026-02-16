@@ -9,9 +9,13 @@ from monitoring.views import (
     DutyFileView, DutyFileDetailView,
     DailyDutyOfficerView, DailyDutyOfficerDetailView,
     DutySectionTypeView, DutySectionTypeDetailView,
+    DashboardView,
 )
 
 urlpatterns = [
+    # Dashboard
+    re_path(r'^dashboard/$', DashboardView.as_view(), name='dashboard_view'),
+
     # MainDuty
     re_path(r'^main-duty/$', MainDutyView.as_view(), name='main_duty_view'),
     path('main-duty/<int:pk>', MainDutyDetailView.as_view(), name='main_duty_detail_view'),
