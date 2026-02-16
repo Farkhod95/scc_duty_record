@@ -37,6 +37,7 @@ class UserSerializer(serializers.ModelSerializer):
     roles = serializers.PrimaryKeyRelatedField(
         many=True, queryset=Role.objects.all(), required=False
     )
+    role_detail = RoleSerializer(source='roles', many=True, read_only=True)
     organization_name = serializers.CharField(source='organization.name', read_only=True, default=None)
     region_name = serializers.CharField(source='region.name', read_only=True, default=None)
     district_name = serializers.CharField(source='district.name', read_only=True, default=None)
@@ -47,7 +48,7 @@ class UserSerializer(serializers.ModelSerializer):
         fields = (
             'id', 'username', 'last_name', 'first_name', 'second_name', 'full_name', 'is_active',
             'date_of_birthday', 'gender', 'phone_number', 'avatar', 'email', 'special_rank',
-            'date_joined', 'roles', 'password', 'organization', 'organization_name',
+            'date_joined', 'roles', 'role_detail', 'password', 'organization', 'organization_name',
             'position', 'department',
             'region', 'region_name', 'district', 'district_name', 'address', 'pinfl', 'passport_series',
             'passport_number', 'passport_given_by', 'begin_date', 'end_date', 'avatar_base64',
