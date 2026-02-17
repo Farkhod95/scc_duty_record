@@ -3,12 +3,10 @@ from django.urls import path, re_path
 from monitoring.views import (
     MainDutyView, MainDutyDetailView,
     MainDutySendForApprovalView, MainDutyApproveView, MainDutyRejectView,
-    DutySectionView, DutySectionDetailView,
     TaskView, TaskDetailView,
     TaskAssignmentView, TaskAssignmentDetailView,
     DutyFileView, DutyFileDetailView,
     DailyDutyOfficerView, DailyDutyOfficerDetailView,
-    DutySectionTypeView, DutySectionTypeDetailView,
     DashboardView,
 )
 
@@ -23,13 +21,9 @@ urlpatterns = [
     path('main-duty/<int:pk>/approve/', MainDutyApproveView.as_view(), name='main_duty_approve'),
     path('main-duty/<int:pk>/reject/', MainDutyRejectView.as_view(), name='main_duty_reject'),
 
-    # DutySection (nested under main-duty)
-    path('main-duty/<int:main_duty_id>/sections/', DutySectionView.as_view(), name='duty_section_view'),
-    path('main-duty/<int:main_duty_id>/sections/<int:pk>', DutySectionDetailView.as_view(), name='duty_section_detail_view'),
-
-    # Task (nested under section)
-    path('sections/<int:section_id>/tasks/', TaskView.as_view(), name='task_view'),
-    path('sections/<int:section_id>/tasks/<int:pk>', TaskDetailView.as_view(), name='task_detail_view'),
+    # Task (nested under main-duty)
+    path('main-duty/<int:main_duty_id>/tasks/', TaskView.as_view(), name='task_view'),
+    path('main-duty/<int:main_duty_id>/tasks/<int:pk>', TaskDetailView.as_view(), name='task_detail_view'),
 
     # TaskAssignment (nested under task)
     path('tasks/<int:task_id>/assignments/', TaskAssignmentView.as_view(), name='task_assignment_view'),
@@ -38,10 +32,6 @@ urlpatterns = [
     # DutyFile (nested under main-duty)
     path('main-duty/<int:main_duty_id>/files/', DutyFileView.as_view(), name='duty_file_view'),
     path('main-duty/files/<int:pk>', DutyFileDetailView.as_view(), name='duty_file_detail_view'),
-
-    # DutySectionType
-    re_path(r'^section-types/$', DutySectionTypeView.as_view(), name='section_type_view'),
-    path('section-types/<int:pk>', DutySectionTypeDetailView.as_view(), name='section_type_detail_view'),
 
     # DailyDutyOfficer
     re_path(r'^daily-duty-officer/$', DailyDutyOfficerView.as_view(), name='daily_duty_officer_view'),

@@ -17,7 +17,7 @@ class TaskAssignmentSerializer(serializers.ModelSerializer):
         employee = attrs.get('employee') or self.instance.employee
         transport = attrs.get('transport', self.instance.transport if self.instance else None)
 
-        main_duty = task.duty_section.main_duty
+        main_duty = task.main_duty
 
         if employee.organization_id != main_duty.organization_id:
             raise serializers.ValidationError({

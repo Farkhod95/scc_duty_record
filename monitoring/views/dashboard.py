@@ -32,7 +32,7 @@ class DashboardView(APIView):
         today = timezone.localdate()
         today_duties = queryset.filter(
             duty_date=today
-        ).annotate(sections_count=Count('sections'))
+        ).annotate(tasks_count=Count('tasks'))
 
         serializer = MainDutyListSerializer(today_duties, many=True)
 

@@ -7,7 +7,7 @@ class TaskSerializer(serializers.ModelSerializer):
     class Meta:
         model = Task
         fields = [
-            'id', 'duty_section', 'title', 'task_type',
+            'id', 'main_duty', 'title', 'task_type',
             'start_time', 'end_time', 'location', 'description',
             'created_time', 'updated_time', 'created_by', 'updated_by',
         ]
@@ -17,6 +17,7 @@ class TaskSerializer(serializers.ModelSerializer):
 class TaskListSerializer(serializers.ModelSerializer):
     task_type_display = serializers.CharField(source='get_task_type_display', read_only=True)
     assignments_count = serializers.IntegerField(read_only=True)
+    main_duty_title = serializers.CharField(source='main_duty.title', read_only=True, default=None)
     location_name = serializers.CharField(source='location.title', read_only=True, default=None)
     region = serializers.IntegerField(source='location.region_id', read_only=True, default=None)
     region_name = serializers.CharField(source='location.region.name', read_only=True, default=None)
@@ -26,7 +27,7 @@ class TaskListSerializer(serializers.ModelSerializer):
     class Meta:
         model = Task
         fields = [
-            'id', 'duty_section', 'title', 'task_type', 'task_type_display',
+            'id', 'main_duty', 'main_duty_title', 'title', 'task_type', 'task_type_display',
             'start_time', 'end_time',
             'location', 'location_name', 'region', 'region_name', 'district', 'district_name',
             'description', 'assignments_count', 'created_time',
@@ -36,6 +37,7 @@ class TaskListSerializer(serializers.ModelSerializer):
 class TaskDetailSerializer(serializers.ModelSerializer):
     task_type_display = serializers.CharField(source='get_task_type_display', read_only=True)
     assignments = serializers.SerializerMethodField()
+    main_duty_title = serializers.CharField(source='main_duty.title', read_only=True, default=None)
     location_name = serializers.CharField(source='location.title', read_only=True, default=None)
     region = serializers.IntegerField(source='location.region_id', read_only=True, default=None)
     region_name = serializers.CharField(source='location.region.name', read_only=True, default=None)
@@ -45,7 +47,7 @@ class TaskDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = Task
         fields = [
-            'id', 'duty_section', 'title', 'task_type', 'task_type_display',
+            'id', 'main_duty', 'main_duty_title', 'title', 'task_type', 'task_type_display',
             'start_time', 'end_time',
             'location', 'location_name', 'region', 'region_name', 'district', 'district_name',
             'description', 'assignments', 'created_time', 'updated_time',

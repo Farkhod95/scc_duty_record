@@ -1,7 +1,8 @@
 from django.db.models import Q
+from django.utils import timezone
 from django_filters import FilterSet, DateTimeFilter, DateFilter, CharFilter
 
-from monitoring.models import MainDuty, Task, DutySection, DutySectionType, TaskAssignment, DutyFile, DailyDutyOfficer
+from monitoring.models import MainDuty, Task, TaskAssignment, DutyFile, DailyDutyOfficer
 
 
 class MainDutyFilter(FilterSet):
@@ -21,14 +22,11 @@ class MainDutyFilter(FilterSet):
         }
 
     def filter_list_type(self, queryset, name, value):
-        if value == 'new':
-            return queryset.filter(
-                status__in=['DRAFT', 'SENT_FOR_APPROVAL']
-            )
+        today = timezone.localdate()
+        if value == 'today':
+            return queryset.filter(duty_date=today)
         elif value == 'archive':
-            return queryset.filter(
-                status__in=['APPROVED', 'REJECTED']
-            )
+            return queryset.filter(duty_date__lt=today)
         return queryset
 
 
@@ -37,29 +35,10 @@ class TaskFilter(FilterSet):
         model = Task
         fields = {
             'task_type': ['exact'],
-            'duty_section': ['exact'],
+            'main_duty': ['exact'],
             'location': ['exact'],
             'location__region': ['exact'],
             'location__district': ['exact'],
-        }
-
-
-class DutySectionTypeFilter(FilterSet):
-    class Meta:
-        model = DutySectionType
-        fields = {
-            'organization': ['exact'],
-            'name': ['exact', 'icontains'],
-        }
-
-
-class DutySectionFilter(FilterSet):
-    class Meta:
-        model = DutySection
-        fields = {
-            'main_duty': ['exact'],
-            'section_type': ['exact'],
-            'name': ['exact', 'icontains'],
         }
 
 

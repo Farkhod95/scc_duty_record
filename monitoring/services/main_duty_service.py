@@ -9,17 +9,11 @@ def send_for_approval(main_duty, user):
     if main_duty.status != MainDutyStatus.DRAFT:
         raise ValidationError({'status': "Faqat DRAFT holatdagi navbatchilikni tasdiqlashga yuborish mumkin."})
 
-    sections = main_duty.sections.all()
-    if not sections.exists():
-        raise ValidationError({'sections': "Kamida bitta bo'lim bo'lishi kerak."})
+    tasks = main_duty.tasks.all()
+    if not tasks.exists():
+        raise ValidationError({'tasks': "Kamida bitta vazifa bo'lishi kerak."})
 
-    for section in sections:
-        tasks = section.tasks.all()
-        if not tasks.exists():
-            raise ValidationError({
-                'tasks': f"'{section.name}' bo'limida kamida bitta vazifa bo'lishi kerak."
-            })
-        for task in tasks:
+    for task in tasks:
             assignments = task.assignments.all()
             if not assignments.exists():
                 raise ValidationError({

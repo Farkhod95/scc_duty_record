@@ -29,7 +29,7 @@ class MainDutyView(ListCreateAPIView):
     def get_queryset(self):
         queryset = MainDuty.objects.select_related(
             'organization', 'created_by'
-        ).annotate(sections_count=Count('sections'))
+        ).annotate(tasks_count=Count('tasks'))
 
         if self.request.user.is_superuser:
             return queryset.all()

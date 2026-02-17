@@ -21,11 +21,11 @@ class TaskAssignmentView(ListCreateAPIView):
 
     def get_task(self):
         queryset = Task.objects.select_related(
-            'duty_section__main_duty__organization'
+            'main_duty__organization'
         )
         if not self.request.user.is_superuser:
             queryset = queryset.filter(
-                duty_section__main_duty__organization=self.request.user.organization
+                main_duty__organization=self.request.user.organization
             )
         return get_object_or_404(queryset, id=self.kwargs['task_id'])
 
@@ -38,7 +38,7 @@ class TaskAssignmentView(ListCreateAPIView):
     def post(self, request, task_id):
         task = self.get_task()
 
-        if task.duty_section.main_duty.status != MainDutyStatus.DRAFT:
+        if task.main_duty.status != MainDutyStatus.DRAFT:
             return Response(
                 {'detail': "Faqat DRAFT holatdagi navbatchilikka tayinlash mumkin."},
                 status=status.HTTP_400_BAD_REQUEST,
@@ -58,11 +58,11 @@ class TaskAssignmentDetailView(RetrieveUpdateDestroyAPIView):
 
     def get_queryset(self):
         queryset = TaskAssignment.objects.select_related(
-            'task__duty_section__main_duty__organization', 'employee', 'transport'
+            'task__main_duty__organization', 'employee', 'transport'
         )
         if not self.request.user.is_superuser:
             queryset = queryset.filter(
-                task__duty_section__main_duty__organization=self.request.user.organization
+                task__main_duty__organization=self.request.user.organization
             )
         return queryset.filter(task_id=self.kwargs['task_id'])
 
@@ -74,7 +74,7 @@ class TaskAssignmentDetailView(RetrieveUpdateDestroyAPIView):
     def put(self, request, task_id, pk):
         instance = get_object_or_404(self.get_queryset(), id=pk)
 
-        if instance.task.duty_section.main_duty.status != MainDutyStatus.DRAFT:
+        if instance.task.main_duty.status != MainDutyStatus.DRAFT:
             return Response(
                 {'detail': "Faqat DRAFT holatdagi navbatchilik tayinlashini tahrirlash mumkin."},
                 status=status.HTTP_400_BAD_REQUEST,

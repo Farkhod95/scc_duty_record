@@ -20,7 +20,7 @@ class MainDutySerializer(serializers.ModelSerializer):
 class MainDutyListSerializer(serializers.ModelSerializer):
     organization_name = serializers.CharField(source='organization.name', read_only=True)
     status_display = serializers.CharField(source='get_status_display', read_only=True)
-    sections_count = serializers.IntegerField(read_only=True)
+    tasks_count = serializers.IntegerField(read_only=True)
     created_by_name = serializers.SerializerMethodField()
 
     class Meta:
@@ -28,7 +28,7 @@ class MainDutyListSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'organization', 'organization_name', 'title',
             'duty_date', 'start_time', 'end_time',
-            'status', 'status_display', 'sections_count',
+            'status', 'status_display', 'tasks_count',
             'created_by', 'created_by_name', 'created_time',
         ]
 
@@ -43,7 +43,7 @@ class MainDutyDetailSerializer(serializers.ModelSerializer):
     status_display = serializers.CharField(source='get_status_display', read_only=True)
     approved_by_name = serializers.SerializerMethodField()
     created_by_name = serializers.SerializerMethodField()
-    sections = serializers.SerializerMethodField()
+    tasks = serializers.SerializerMethodField()
     files = serializers.SerializerMethodField()
 
     class Meta:
@@ -54,7 +54,7 @@ class MainDutyDetailSerializer(serializers.ModelSerializer):
             'status', 'status_display',
             'approved_by', 'approved_by_name', 'approved_at', 'rejection_reason',
             'created_by', 'created_by_name', 'created_time', 'updated_time',
-            'sections', 'files',
+            'tasks', 'files',
         ]
 
     def get_approved_by_name(self, obj):
@@ -67,12 +67,12 @@ class MainDutyDetailSerializer(serializers.ModelSerializer):
             return obj.created_by.get_full_name()
         return None
 
-    def get_sections(self, obj):
-        from monitoring.serializers.duty_section import DutySectionDetailSerializer
-        sections = obj.sections.prefetch_related(
-            'tasks__assignments__employee', 'tasks__assignments__transport'
-        ).all()
-        return DutySectionDetailSerializer(sections, many=True).data
+    def get_tasks(self, obj):
+        from monitoring.serializers.task import TaskDetailSerializer
+        tasks = obj.tasks.prefetch_related(
+            'assignments__employee', 'assignments__transport'
+        ).select_related('location__region', 'location__district').all()
+        return TaskDetailSerializer(tasks, many=True).data
 
     def get_files(self, obj):
         from monitoring.serializers.duty_file import DutyFileListSerializer

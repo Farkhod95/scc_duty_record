@@ -87,62 +87,10 @@ class MainDuty(BaseModel):
             })
 
 
-class DutySectionType(BaseModel):
-    name = models.CharField(
-        _('Name'), max_length=255, help_text=_("Bo'lim turi nomi")
-    )
-    organization = models.ForeignKey(
-        'directory.Organization', on_delete=models.CASCADE,
-        related_name='section_types', help_text=_("Qaysi tashkilotga tegishli")
-    )
-    sort_order = models.PositiveIntegerField(
-        _('Sort order'), default=0, help_text=_("Tartiblash raqami")
-    )
-
-    class Meta:
-        verbose_name = _("Duty section type")
-        verbose_name_plural = _("Duty section types")
-        ordering = ['sort_order']
-
-    def __str__(self):
-        return self.name
-
-
-class DutySection(BaseModel):
-    main_duty = models.ForeignKey(
-        MainDuty, on_delete=models.CASCADE, null=True, blank=True,
-        related_name='sections', help_text=_("Qaysi navbatchilikka tegishli")
-    )
-    section_type = models.ForeignKey(
-        DutySectionType, on_delete=models.SET_NULL, null=True, blank=True,
-        related_name='sections', help_text=_("Bo'lim turi")
-    )
-    name = models.CharField(
-        _('Name'), max_length=255, null=True, blank=True,
-        help_text=_("Bo'lim nomi (ixtiyoriy, type tanlanmasa)")
-    )
-    sort_order = models.PositiveIntegerField(
-        _('Sort order'), default=0, help_text=_("Tartiblash raqami")
-    )
-
-    class Meta:
-        verbose_name = _("Duty section")
-        verbose_name_plural = _("Duty sections")
-        ordering = ['sort_order']
-        indexes = [
-            models.Index(fields=['main_duty', 'sort_order']),
-        ]
-
-    def __str__(self):
-        label = self.section_type.name if self.section_type else self.name or ''
-        main_duty_title = self.main_duty.title if self.main_duty else ''
-        return f"{label} ({main_duty_title})"
-
-
 class Task(BaseModel):
-    duty_section = models.ForeignKey(
-        DutySection, on_delete=models.CASCADE,
-        related_name='tasks', help_text=_("Qaysi bo'limga tegishli")
+    main_duty = models.ForeignKey(
+        MainDuty, on_delete=models.CASCADE,
+        related_name='tasks', help_text=_("Qaysi navbatchilikka tegishli")
     )
     title = models.CharField(
         _('Title'), max_length=255, help_text=_("Vazifa nomi")
@@ -174,7 +122,7 @@ class Task(BaseModel):
         verbose_name_plural = _("Tasks")
         ordering = ['id']
         indexes = [
-            models.Index(fields=['duty_section', 'task_type']),
+            models.Index(fields=['main_duty', 'task_type']),
             models.Index(fields=['task_type']),
         ]
 
@@ -216,7 +164,7 @@ class TaskAssignment(BaseModel):
 
     def clean(self):
         super().clean()
-        main_duty = self.task.duty_section.main_duty
+        main_duty = self.task.main_duty
         if self.employee.organization_id != main_duty.organization_id:
             raise ValidationError({
                 'employee': _("Xodim navbatchilik tashkilotiga tegishli bo'lishi kerak.")
