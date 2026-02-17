@@ -9,7 +9,9 @@ class IsSuperAdmin(BasePermission):
     message = "Faqat superadmin bu amalni bajarishi mumkin"
 
     def has_permission(self, request, view):
-        return request.user and request.user.is_authenticated and request.user.is_superuser
+        if not request.user or not request.user.is_authenticated:
+            return False
+        return request.user.is_superuser or request.user.is_superadmin()
 
 
 class IsOrgAdmin(BasePermission):
@@ -19,10 +21,9 @@ class IsOrgAdmin(BasePermission):
     def has_permission(self, request, view):
         if not request.user or not request.user.is_authenticated:
             return False
-        if request.user.is_superuser:
+        if request.user.is_superuser or request.user.is_superadmin():
             return True
-        # User must have organization
-        return request.user.organization is not None
+        return request.user.organization is not None and request.user.is_admin()
 
 
 class IsManager(BasePermission):
@@ -32,9 +33,9 @@ class IsManager(BasePermission):
     def has_permission(self, request, view):
         if not request.user or not request.user.is_authenticated:
             return False
-        if request.user.is_superuser:
+        if request.user.is_superuser or request.user.is_superadmin():
             return True
-        return hasattr(request.user, 'is_manager') and request.user.is_manager()
+        return request.user.is_manager()
 
 
 class IsOrgMember(BasePermission):
@@ -44,12 +45,12 @@ class IsOrgMember(BasePermission):
     def has_permission(self, request, view):
         if not request.user or not request.user.is_authenticated:
             return False
-        if request.user.is_superuser:
+        if request.user.is_superuser or request.user.is_superadmin():
             return True
         return request.user.organization is not None
 
     def has_object_permission(self, request, view, obj):
-        if request.user.is_superuser:
+        if request.user.is_superuser or request.user.is_superadmin():
             return True
         # Object must have organization field
         if hasattr(obj, 'organization'):

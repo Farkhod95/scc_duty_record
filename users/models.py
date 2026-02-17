@@ -115,11 +115,16 @@ class User(AbstractUser):
         return self.username or str(self.pk)
 
     def is_admin(self) -> bool:
-        # oldingi: return self.role and self.role.name == 'Super Admin'
-        return self.roles.filter(name__iexact='Super Admin').exists()
+        return self.roles.filter(name__iexact='admin').exists()
 
     def is_manager(self) -> bool:
-        return self.roles.filter(name__iexact='Manager').exists()
+        return self.roles.filter(name__iexact='manager').exists()
+
+    def is_superadmin(self) -> bool:
+        return self.roles.filter(name__iexact='superadmin').exists()
+
+    def is_employee(self) -> bool:
+        return self.roles.filter(name__iexact='employee').exists()
 
 
 

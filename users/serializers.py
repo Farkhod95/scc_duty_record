@@ -74,6 +74,7 @@ class UserSerializer(serializers.ModelSerializer):
         if password:
             user.password = make_password(password)
             # yoki: user.set_password(password)
+        user.is_active = True
         user.save()
 
         if roles_ids:

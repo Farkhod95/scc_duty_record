@@ -15,6 +15,7 @@ class UserFilter(FilterSet):
     first_name = df.CharFilter(method='filter_first_name')
     second_name = df.CharFilter(method='filter_second_name')
     pinfl = df.CharFilter(method='filter_pinfl')
+    role = df.CharFilter(method='filter_role')
 
     class Meta:
         model = User
@@ -33,6 +34,12 @@ class UserFilter(FilterSet):
             'last_name': ['exact'],
             'is_active': ['exact'],
         }
+    def filter_role(self, qs, name, value):
+        v = (value or '').strip()
+        if not v:
+            return qs
+        return qs.filter(roles__name__iexact=v).distinct()
+
     def filter_pinfl(self, qs, name, value):
         v = (value or '').strip()
         if not v or len(v) < MIN_TERM:
