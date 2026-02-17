@@ -23,7 +23,9 @@ class IsOrgAdmin(BasePermission):
             return False
         if request.user.is_superuser or request.user.is_superadmin():
             return True
-        return request.user.organization is not None and request.user.is_admin()
+        if request.user.is_admin() or request.user.is_manager():
+            return request.user.organization_id is not None
+        return False
 
 
 class IsManager(BasePermission):

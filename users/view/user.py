@@ -12,7 +12,7 @@ from restapp.utils.responses import nonContent
 from users.filterset import UserFilter
 from users.models import User
 from users.serializers import UserSerializer, ChangePasswordSerializer, UserListPublicIdSerializer, UserListSerializer
-from users.utils.permissions import IsOrgAdmin, IsSuperAdmin
+from users.utils.permissions import IsOrgAdmin
 
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework_simplejwt.views import TokenObtainPairView
