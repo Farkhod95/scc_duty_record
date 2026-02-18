@@ -2,6 +2,7 @@ from django.db.models import Q
 from django.utils import timezone
 from django_filters import FilterSet, DateTimeFilter, DateFilter, CharFilter
 
+from directory.models import Location
 from monitoring.models import MainDuty, Task, TaskAssignment, DutyFile, DailyDutyOfficer
 
 
@@ -58,6 +59,15 @@ class DutyFileFilter(FilterSet):
         model = DutyFile
         fields = {
             'name': ['exact', 'icontains'],
+        }
+
+
+class LocationTasksFilter(FilterSet):
+    class Meta:
+        model = Location
+        fields = {
+            'region': ['exact'],
+            'district': ['exact'],
         }
 
 

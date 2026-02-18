@@ -8,6 +8,7 @@ from monitoring.views import (
     DutyFileView, DutyFileDetailView,
     DailyDutyOfficerView, DailyDutyOfficerDetailView,
     DashboardView,
+    LocationTasksView,
 )
 
 urlpatterns = [
@@ -32,6 +33,9 @@ urlpatterns = [
     # DutyFile (nested under main-duty)
     path('main-duty/<int:main_duty_id>/files/', DutyFileView.as_view(), name='duty_file_view'),
     path('main-duty/files/<int:pk>', DutyFileDetailView.as_view(), name='duty_file_detail_view'),
+
+    # Location Tasks
+    re_path(r'^location-tasks/$', LocationTasksView.as_view(), name='location_tasks_view'),
 
     # DailyDutyOfficer
     re_path(r'^daily-duty-officer/$', DailyDutyOfficerView.as_view(), name='daily_duty_officer_view'),

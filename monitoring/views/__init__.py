@@ -7,3 +7,4 @@ from monitoring.views.task_assignment import TaskAssignmentView, TaskAssignmentD
 from monitoring.views.duty_file import DutyFileView, DutyFileDetailView
 from monitoring.views.daily_duty_officer import DailyDutyOfficerView, DailyDutyOfficerDetailView
 from monitoring.views.dashboard import DashboardView
+from monitoring.views.location_tasks import LocationTasksView
