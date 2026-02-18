@@ -34,13 +34,21 @@ class LocationTasksView(ListAPIView):
             main_duty__status=status_filter,
         )
 
+        location_task_filters = Q(
+            tasks__main_duty__duty_date=duty_date,
+            tasks__main_duty__status=status_filter,
+        )
+
         if user.is_superuser and organization:
             task_filters &= Q(main_duty__organization_id=organization)
+            location_task_filters &= Q(tasks__main_duty__organization_id=organization)
         elif not user.is_superuser:
             task_filters &= Q(main_duty__organization=user.organization)
+            location_task_filters &= Q(tasks__main_duty__organization=user.organization)
 
         if task_type:
             task_filters &= Q(task_type=task_type)
+            location_task_filters &= Q(tasks__task_type=task_type)
 
         task_qs = Task.objects.filter(task_filters).select_related(
             'main_duty__organization',
@@ -56,7 +64,7 @@ class LocationTasksView(ListAPIView):
         ).prefetch_related(
             Prefetch('tasks', queryset=task_qs, to_attr='filtered_tasks'),
         ).annotate(
-            tasks_count=Count('tasks', filter=task_filters),
+            tasks_count=Count('tasks', filter=location_task_filters),
         ).filter(
             tasks_count__gt=0,
         ).order_by('title')
