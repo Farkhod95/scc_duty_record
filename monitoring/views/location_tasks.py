@@ -65,6 +65,4 @@ class LocationTasksView(ListAPIView):
             Prefetch('tasks', queryset=task_qs, to_attr='filtered_tasks'),
         ).annotate(
             tasks_count=Count('tasks', filter=location_task_filters),
-        ).filter(
-            tasks_count__gt=0,
         ).order_by('title')
