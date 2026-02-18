@@ -32,7 +32,7 @@ class MainDutyView(ListCreateAPIView):
         ).annotate(tasks_count=Count('tasks'))
 
         if self.request.user.is_superuser:
-            return queryset.all()
+            return queryset.filter(status__in=[MainDutyStatus.SENT_FOR_APPROVAL, MainDutyStatus.APPROVED, MainDutyStatus.REJECTED])
 
         return queryset.filter(organization=self.request.user.organization)
 
@@ -50,7 +50,7 @@ class MainDutyView(ListCreateAPIView):
         # O'z tashkiloti tekshiruvi
         if org != request.user.organization:
             return Response(
-                {'detail': "Siz faqat o'z organizatsiyangiz uchun navbatchilik yarata olasiz"},
+                {'error': "Siz faqat o'z organizatsiyangiz uchun navbatchilik yarata olasiz"},
                 status=status.HTTP_403_FORBIDDEN,
             )
 
@@ -69,7 +69,7 @@ class MainDutyView(ListCreateAPIView):
 
         if not is_duty_officer:
             return Response(
-                {'detail': "Siz bugun dijur tayinlanmagansiz. Navbatchilik yarata olmaysiz."},
+                {'error': "Siz bugun dijur tayinlanmagansiz. Navbatchilik yarata olmaysiz."},
                 status=status.HTTP_403_FORBIDDEN,
             )
 
@@ -101,7 +101,7 @@ class MainDutyDetailView(RetrieveUpdateDestroyAPIView):
 
         if instance.status != MainDutyStatus.DRAFT:
             return Response(
-                {'detail': "Faqat DRAFT holatdagi navbatchilikni tahrirlash mumkin."},
+                {'error': "Faqat DRAFT holatdagi navbatchilikni tahrirlash mumkin."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 

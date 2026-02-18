@@ -5,6 +5,7 @@ from monitoring.views import (
     MainDutySendForApprovalView, MainDutyApproveView, MainDutyRejectView,
     TaskView, TaskDetailView,
     TaskAssignmentView, TaskAssignmentDetailView,
+    AbsenceRequestCreateView, AbsenceRequestReviewView,
     DutyFileView, DutyFileDetailView,
     DailyDutyOfficerView, DailyDutyOfficerDetailView,
     DashboardView,
@@ -29,6 +30,10 @@ urlpatterns = [
     # TaskAssignment (nested under task)
     path('tasks/<int:task_id>/assignments/', TaskAssignmentView.as_view(), name='task_assignment_view'),
     path('tasks/<int:task_id>/assignments/<int:pk>', TaskAssignmentDetailView.as_view(), name='task_assignment_detail_view'),
+
+    # AbsenceRequest
+    path('tasks/<int:task_id>/assignments/<int:pk>/absence-request/', AbsenceRequestCreateView.as_view(), name='absence_request_create'),
+    path('absence-requests/<int:pk>/review/', AbsenceRequestReviewView.as_view(), name='absence_request_review'),
 
     # DutyFile (nested under main-duty)
     path('main-duty/<int:main_duty_id>/files/', DutyFileView.as_view(), name='duty_file_view'),

@@ -39,7 +39,7 @@ class TaskView(ListCreateAPIView):
 
         if main_duty.status != MainDutyStatus.DRAFT:
             return Response(
-                {'detail': "Faqat DRAFT holatdagi navbatchilikka vazifa qo'shish mumkin."},
+                {'error': "Faqat DRAFT holatdagi navbatchilikka vazifa qo'shish mumkin."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -75,7 +75,7 @@ class TaskDetailView(RetrieveUpdateDestroyAPIView):
 
         if instance.main_duty.status != MainDutyStatus.DRAFT:
             return Response(
-                {'detail': "Faqat DRAFT holatdagi navbatchilik vazifasini tahrirlash mumkin."},
+                {'error': "Faqat DRAFT holatdagi navbatchilik vazifasini tahrirlash mumkin."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 

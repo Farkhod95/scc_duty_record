@@ -62,6 +62,12 @@ class IsOrgMember(BasePermission):
             return obj.duty.organization == request.user.organization
         return False
 
+class IsOrgEmployee(BasePermission):
+    def has_permission(self, request, view):
+        if request.user.is_employee():
+            return request.user.organization_id is not None
+        return False
+
 
 def get_user_permissions(groups):
     permissions, result = [], []

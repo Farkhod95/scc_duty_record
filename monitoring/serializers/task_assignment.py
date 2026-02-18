@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from monitoring.models import TaskAssignment
+from monitoring.models import TaskAssignment, AbsenceRequest, AbsenceRequestStatus
 
 
 class TaskAssignmentSerializer(serializers.ModelSerializer):
@@ -54,3 +54,38 @@ class TaskAssignmentListSerializer(serializers.ModelSerializer):
         if obj.transport:
             return str(obj.transport)
         return None
+
+
+class AbsenceRequestSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = AbsenceRequest
+        fields = ['id', 'task_assignment', 'reason', 'file', 'status',
+                  'replacement_employee', 'reviewed_by', 'reviewed_at',
+                  'review_note', 'created_time']
+        read_only_fields = ['id', 'status', 'replacement_employee', 'reviewed_by',
+                            'reviewed_at', 'review_note', 'created_time']
+
+
+class AbsenceRequestReviewSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = AbsenceRequest
+        fields = ['status', 'replacement_employee', 'review_note']
+
+    def validate_status(self, value):
+        if value not in [AbsenceRequestStatus.APPROVED, AbsenceRequestStatus.REJECTED]:
+            raise serializers.ValidationError("Status APPROVED yoki REJECTED bo'lishi kerak.")
+        return value
+
+    def validate(self, attrs):
+        instance = self.instance
+        if instance and instance.status != AbsenceRequestStatus.PENDING:
+            raise serializers.ValidationError("Faqat PENDING holatdagi so'rovni ko'rib chiqish mumkin.")
+        replacement = attrs.get('replacement_employee')
+        if replacement:
+            task_assignment = instance.task_assignment
+            main_duty = task_assignment.task.main_duty
+            if replacement.organization_id != main_duty.organization_id:
+                raise serializers.ValidationError(
+                    "O'rinbosar xodim navbatchilik tashkilotiga tegishli bo'lishi kerak."
+                )
+        return attrs

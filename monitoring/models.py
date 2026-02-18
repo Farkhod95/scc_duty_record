@@ -28,6 +28,12 @@ class RoleInTransport(models.TextChoices):
     NONE = 'NONE', _('None')
 
 
+class AbsenceRequestStatus(models.TextChoices):
+    PENDING = 'PENDING', _('Pending')
+    APPROVED = 'APPROVED', _('Approved')
+    REJECTED = 'REJECTED', _('Rejected')
+
+
 # --- Models ---
 
 class MainDuty(BaseModel):
@@ -173,6 +179,47 @@ class TaskAssignment(BaseModel):
             raise ValidationError({
                 'transport': _("Transport navbatchilik tashkilotiga tegishli bo'lishi kerak.")
             })
+
+
+class AbsenceRequest(BaseModel):
+    task_assignment = models.OneToOneField(
+        TaskAssignment, on_delete=models.CASCADE,
+        related_name='absence_request', help_text=_("Qaysi tayinlash uchun")
+    )
+    reason = models.TextField(
+        _('Reason'), help_text=_("Kela olmaslik sababi")
+    )
+    file = models.FileField(
+        _('File'), upload_to='absence_requests/%Y/%m/%d/',
+        null=True, blank=True, help_text=_("Sabab hujjati")
+    )
+    status = models.CharField(
+        _('Status'), max_length=20,
+        choices=AbsenceRequestStatus.choices, default=AbsenceRequestStatus.PENDING,
+        help_text=_("So'rov holati")
+    )
+    replacement_employee = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='replacement_assignments', help_text=_("O'rinbosar xodim")
+    )
+    reviewed_by = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='reviewed_absence_requests', help_text=_("Kim ko'rib chiqdi")
+    )
+    reviewed_at = models.DateTimeField(
+        _('Reviewed at'), null=True, blank=True, help_text=_("Ko'rib chiqilgan vaqt")
+    )
+    review_note = models.TextField(
+        _('Review note'), null=True, blank=True, help_text=_("Izoh")
+    )
+
+    class Meta:
+        verbose_name = _("Absence request")
+        verbose_name_plural = _("Absence requests")
+        ordering = ['-created_time']
+
+    def __str__(self):
+        return f"{self.task_assignment} - {self.get_status_display()}"
 
 
 class DutyFile(BaseModel):

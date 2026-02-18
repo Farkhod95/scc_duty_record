@@ -39,7 +39,7 @@ class DailyDutyOfficerView(ListCreateAPIView):
         org = serializer.validated_data.get('organization')
         if not request.user.is_superuser and org != request.user.organization:
             return Response(
-                {'detail': "Siz faqat o'z organizatsiyangiz uchun dijur tayinlashingiz mumkin"},
+                {'error': "Siz faqat o'z organizatsiyangiz uchun dijur tayinlashingiz mumkin"},
                 status=status.HTTP_403_FORBIDDEN,
             )
 
@@ -74,7 +74,7 @@ class DailyDutyOfficerDetailView(RetrieveUpdateDestroyAPIView):
         org = serializer.validated_data.get('organization')
         if not request.user.is_superuser and org != request.user.organization:
             return Response(
-                {'detail': "Siz faqat o'z organizatsiyangiz uchun dijur tayinlashingiz mumkin"},
+                {'error': "Siz faqat o'z organizatsiyangiz uchun dijur tayinlashingiz mumkin"},
                 status=status.HTTP_403_FORBIDDEN,
             )
 

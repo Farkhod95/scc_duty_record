@@ -4,25 +4,26 @@ from rest_framework.exceptions import ValidationError, NotAuthenticated, Authent
 from rest_framework.views import exception_handler
 
 
+def _extract_error_message(detail):
+    """Flatten DRF ValidationError detail to a single string."""
+    if isinstance(detail, dict):
+        first_value = next(iter(detail.values()))
+        return _extract_error_message(first_value)
+    if isinstance(detail, list):
+        return _extract_error_message(detail[0])
+    return str(detail)
+
+
 def custom_exception_handler(exc, context):
     response = exception_handler(exc, context)
 
     if isinstance(exc, Http404):
-        response.data = {
-            'errorCode': status.HTTP_404_NOT_FOUND,
-            'errorMessage': 'Not Found'
-        }
+        response.data = {'error': 'Not Found'}
 
-    if isinstance(exc, ValidationError):
-        response.data = {
-            'message': exc.detail,
-            'errorCode': status.HTTP_400_BAD_REQUEST,
-            'errorMessage': 'Bad Request'
-        }
+    elif isinstance(exc, ValidationError):
+        response.data = {'error': _extract_error_message(exc.detail)}
 
-    if isinstance(exc, NotAuthenticated) or isinstance(exc, AuthenticationFailed):
-        response.data = {
-            'message': {'password': 'Wrong Email or Password'}
-        }
+    elif isinstance(exc, (NotAuthenticated, AuthenticationFailed)):
+        response.data = {'error': 'Wrong Email or Password'}
 
     return response
