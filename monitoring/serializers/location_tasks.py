@@ -61,9 +61,6 @@ class LocationWithTasksSerializer(serializers.ModelSerializer):
         model = Location
         fields = [
             'id', 'region', 'region_name', 'district', 'district_name',
-            'title', 'key', 'has_boundary',
+            'title', 'key', 'boundary_data',
             'tasks_count', 'tasks',
         ]
-
-    def get_has_boundary(self, obj):
-        return obj.boundary_data is not None and bool(obj.boundary_data)
