@@ -11,8 +11,8 @@ class CustomUserAdmin(UserAdmin):
         (None, {'fields': ('username', 'password')}),
         (_('Personal info'), {'fields': ('last_name', 'first_name', 'second_name', 'email', 'avatar', 'avatar_base64', 'pinfl', 'date_of_birthday', 'passport_series', 'passport_number')}),
         (_('Permissions'),
-         {'fields': ('is_active', 'is_staff', 'roles', 'client_token', 'address', 'region', 'district', 'work_region',
-                     'work_district', 'jeton_series', 'jeton_number',
+         {'fields': ('is_active', 'is_staff', 'roles', 'client_token', 'address', 'region', 'district',
+                    'jeton_series', 'jeton_number',
             'jeton_begin_date', 'special_rank', 'phone_number')}),
     )
     add_fieldsets = (
@@ -21,10 +21,10 @@ class CustomUserAdmin(UserAdmin):
             'fields': (
             'last_name', 'first_name', 'second_name', 'email', 'gender', 'is_active', 'username', 'password1',
             'password2', 'roles', 'address', 'department', 'position', 'client_token', 'jeton_series', 'jeton_number',
-            'jeton_begin_date', 'special_rank', 'phone_number', 'work_region', 'work_district'),
+            'jeton_begin_date', 'special_rank', 'phone_number'),
         }),
     )
-    list_display = ('username', 'pinfl', 'last_name', 'first_name', 'second_name', 'phone_number', 'region', 'district', 'work_region', 'work_district', 'updated_time', 'updated_by')
+    list_display = ('username', 'pinfl', 'last_name', 'first_name', 'second_name', 'phone_number', 'region', 'district', 'updated_time', 'updated_by')
     list_filter = ('is_staff', 'is_superuser', 'is_active', 'roles')
     search_fields = ('username', 'last_name', 'first_name', 'second_name', 'email', 'pinfl')
     ordering = ('username',)
