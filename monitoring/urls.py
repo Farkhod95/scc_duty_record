@@ -34,7 +34,7 @@ urlpatterns = [
     # AbsenceRequest
     path('tasks/<int:task_id>/assignments/<int:pk>/absence-request/', AbsenceRequestCreateView.as_view(), name='absence_request_create'),
     re_path(r'^absence-requests/$', AbsenceRequestListView.as_view(), name='absence_request_list'),
-    path('absence-requests/<int:pk>/', AbsenceRequestReviewView.as_view(), name='absence_request_review'),
+    path('absence-requests/<int:pk>', AbsenceRequestReviewView.as_view(), name='absence_request_review'),
 
     # DutyFile (nested under main-duty)
     path('main-duty/<int:main_duty_id>/files/', DutyFileView.as_view(), name='duty_file_view'),
