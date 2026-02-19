@@ -3,7 +3,7 @@ from django.utils import timezone
 from django_filters import FilterSet, DateTimeFilter, DateFilter, CharFilter
 
 from directory.models import Location
-from monitoring.models import MainDuty, Task, TaskAssignment, DutyFile, DailyDutyOfficer
+from monitoring.models import MainDuty, Task, TaskAssignment, DutyFile, DailyDutyOfficer, AbsenceRequest
 
 
 class MainDutyFilter(FilterSet):
@@ -68,6 +68,24 @@ class LocationTasksFilter(FilterSet):
         fields = {
             'region': ['exact'],
             'district': ['exact'],
+        }
+
+
+class AbsenceRequestFilter(FilterSet):
+    duty_date_from = DateFilter(
+        field_name='task_assignment__task__main_duty__duty_date', lookup_expr='gte'
+    )
+    duty_date_to = DateFilter(
+        field_name='task_assignment__task__main_duty__duty_date', lookup_expr='lte'
+    )
+    duty_date = DateFilter(
+        field_name='task_assignment__task__main_duty__duty_date', lookup_expr='exact'
+    )
+
+    class Meta:
+        model = AbsenceRequest
+        fields = {
+            'status': ['exact'],
         }
 
 

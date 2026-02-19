@@ -11,7 +11,7 @@ from monitoring.serializers.task_assignment import (
     AbsenceRequestSerializer, AbsenceRequestReviewSerializer,
     AbsenceRequestListSerializer,
 )
-from monitoring.filterset import TaskAssignmentFilter
+from monitoring.filterset import TaskAssignmentFilter, AbsenceRequestFilter
 from restapp.pagination import ResultsSetPagination
 from restapp.utils.responses import nonContent
 from users.utils.permissions import IsOrgAdmin, IsOrgEmployee
@@ -163,29 +163,40 @@ class AbsenceRequestCreateView(APIView):
 
 
 class AbsenceRequestListView(ListAPIView):
-    """GET /absence-requests/ — hozirgi va kelajakdagi tasklar ichidagi barcha so'rovlar."""
+    """GET /absence-requests/
+    Filters:
+      ?status=PENDING|APPROVED|REJECTED
+      ?duty_date=2025-12-17
+      ?duty_date_from=2025-12-01
+      ?duty_date_to=2025-12-31
+    Default: hozirdan boshlab (duty_date >= bugun).
+    ?duty_date_from yoki ?duty_date_to berilsa, default filter o'chadi.
+    """
     serializer_class = AbsenceRequestListSerializer
     permission_classes = [IsOrgAdmin]
     pagination_class = ResultsSetPagination
+    filter_backends = (DjangoFilterBackend,)
+    filterset_class = AbsenceRequestFilter
 
     def get_queryset(self):
-        today = timezone.now().date()
         qs = AbsenceRequest.objects.select_related(
             'task_assignment__employee',
             'task_assignment__task__main_duty',
             'replacement_employee',
             'reviewed_by',
-        ).filter(
-            task_assignment__task__main_duty__duty_date__gte=today,
         )
         if not self.request.user.is_superuser:
             qs = qs.filter(
                 task_assignment__task__main_duty__organization=self.request.user.organization,
             )
-        # Optional ?status= filter
-        req_status = self.request.query_params.get('status')
-        if req_status:
-            qs = qs.filter(status=req_status)
+        # Agar sana filteri berilmagan bo'lsa — faqat hozir va kelajak
+        params = self.request.query_params
+        has_date_filter = any(
+            params.get(k) for k in ('duty_date', 'duty_date_from', 'duty_date_to')
+        )
+        if not has_date_filter:
+            today = timezone.now().date()
+            qs = qs.filter(task_assignment__task__main_duty__duty_date__gte=today)
         return qs.order_by('task_assignment__task__main_duty__duty_date', 'id')
 
 
