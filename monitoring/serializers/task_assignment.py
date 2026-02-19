@@ -66,6 +66,51 @@ class AbsenceRequestSerializer(serializers.ModelSerializer):
                             'reviewed_at', 'review_note', 'created_time']
 
 
+class AbsenceRequestListSerializer(serializers.ModelSerializer):
+    employee_id = serializers.IntegerField(source='task_assignment.employee.id', read_only=True)
+    employee_full_name = serializers.CharField(source='task_assignment.employee.get_full_name', read_only=True)
+    employee_phone = serializers.CharField(source='task_assignment.employee.phone_number', read_only=True)
+
+    task_id = serializers.IntegerField(source='task_assignment.task.id', read_only=True)
+    task_title = serializers.CharField(source='task_assignment.task.title', read_only=True)
+    task_start_time = serializers.DateTimeField(source='task_assignment.task.start_time', read_only=True)
+    task_end_time = serializers.DateTimeField(source='task_assignment.task.end_time', read_only=True)
+
+    main_duty_id = serializers.IntegerField(source='task_assignment.task.main_duty.id', read_only=True)
+    main_duty_title = serializers.CharField(source='task_assignment.task.main_duty.title', read_only=True)
+    duty_date = serializers.DateField(source='task_assignment.task.main_duty.duty_date', read_only=True)
+
+    status_display = serializers.CharField(source='get_status_display', read_only=True)
+
+    replacement_employee_name = serializers.SerializerMethodField()
+    reviewed_by_name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = AbsenceRequest
+        fields = [
+            'id',
+            'status', 'status_display',
+            'reason', 'file',
+            'review_note', 'reviewed_at',
+            'employee_id', 'employee_full_name', 'employee_phone',
+            'task_id', 'task_title', 'task_start_time', 'task_end_time',
+            'main_duty_id', 'main_duty_title', 'duty_date',
+            'replacement_employee', 'replacement_employee_name',
+            'reviewed_by', 'reviewed_by_name',
+            'created_time',
+        ]
+
+    def get_replacement_employee_name(self, obj):
+        if obj.replacement_employee:
+            return obj.replacement_employee.get_full_name()
+        return None
+
+    def get_reviewed_by_name(self, obj):
+        if obj.reviewed_by:
+            return obj.reviewed_by.get_full_name()
+        return None
+
+
 class AbsenceRequestReviewSerializer(serializers.ModelSerializer):
     class Meta:
         model = AbsenceRequest

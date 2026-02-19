@@ -1,7 +1,7 @@
 from django.utils import timezone
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import status, filters
-from rest_framework.generics import ListCreateAPIView, RetrieveUpdateDestroyAPIView, get_object_or_404
+from rest_framework.generics import ListCreateAPIView, RetrieveUpdateDestroyAPIView, ListAPIView, get_object_or_404
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -9,6 +9,7 @@ from monitoring.models import TaskAssignment, Task, MainDutyStatus, AbsenceReque
 from monitoring.serializers.task_assignment import (
     TaskAssignmentSerializer, TaskAssignmentListSerializer,
     AbsenceRequestSerializer, AbsenceRequestReviewSerializer,
+    AbsenceRequestListSerializer,
 )
 from monitoring.filterset import TaskAssignmentFilter
 from restapp.pagination import ResultsSetPagination
@@ -159,6 +160,33 @@ class AbsenceRequestCreateView(APIView):
             )
         serializer = AbsenceRequestSerializer(assignment.absence_request)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class AbsenceRequestListView(ListAPIView):
+    """GET /absence-requests/ — hozirgi va kelajakdagi tasklar ichidagi barcha so'rovlar."""
+    serializer_class = AbsenceRequestListSerializer
+    permission_classes = [IsOrgAdmin]
+    pagination_class = ResultsSetPagination
+
+    def get_queryset(self):
+        today = timezone.now().date()
+        qs = AbsenceRequest.objects.select_related(
+            'task_assignment__employee',
+            'task_assignment__task__main_duty',
+            'replacement_employee',
+            'reviewed_by',
+        ).filter(
+            task_assignment__task__main_duty__duty_date__gte=today,
+        )
+        if not self.request.user.is_superuser:
+            qs = qs.filter(
+                task_assignment__task__main_duty__organization=self.request.user.organization,
+            )
+        # Optional ?status= filter
+        req_status = self.request.query_params.get('status')
+        if req_status:
+            qs = qs.filter(status=req_status)
+        return qs.order_by('task_assignment__task__main_duty__duty_date', 'id')
 
 
 class AbsenceRequestReviewView(APIView):
