@@ -51,12 +51,6 @@ class User(AbstractUser):
                                help_text=_("Viloyat"))
     district = models.ForeignKey("directory.District", related_name='user_district', on_delete=models.SET_NULL,
                                  null=True, blank=True, help_text=_("Tuman"))
-    work_region = models.ForeignKey("directory.Region", related_name='user_work_region', on_delete=models.SET_NULL,
-                                    null=True,
-                                    blank=True, help_text=_("Ish manzili (Viloyat)"))
-    work_district = models.ForeignKey("directory.District", related_name='user_work_district',
-                                      on_delete=models.SET_NULL,
-                                      null=True, blank=True, help_text=_("Ish manzili ( Tuman)"))
     # role = models.ForeignKey(Role, related_name='role_user', null=True, blank=True, on_delete=models.SET_NULL,
     #                          help_text=_("Foydalanuvchi roli"))
     roles = models.ManyToManyField(Role, related_name='users', blank=True, help_text=_("Foydalanuvchi rollari"))
@@ -99,9 +93,6 @@ class User(AbstractUser):
             models.Index(fields=['first_name']),
             models.Index(fields=['region']),
             models.Index(fields=['district']),
-            models.Index(fields=['work_region']),
-            models.Index(fields=['work_district']),
-            models.Index(fields=['work_region', 'work_district'], name='idx_user_work_reg_dist'),
         ]
 
     def save(self, *args, **kwargs):

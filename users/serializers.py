@@ -52,8 +52,7 @@ class UserSerializer(serializers.ModelSerializer):
             'position', 'department',
             'region', 'region_name', 'district', 'district_name', 'address', 'pinfl', 'passport_series',
             'passport_number', 'passport_given_by', 'begin_date', 'end_date', 'avatar_base64',
-            'jeton_series', 'jeton_number', 'jeton_begin_date', 'work_region',
-            'work_district'
+            'jeton_series', 'jeton_number', 'jeton_begin_date'
         )
         extra_kwargs = {
             'username': {
@@ -117,7 +116,6 @@ class UserUpdateSchoolSerializer(serializers.ModelSerializer):
             'region', 'district', 'address', 'pinfl', 'passport_series',
             'passport_number', 'passport_given_by', 'begin_date', 'end_date', 'avatar_base64',
             'jeton_series', 'jeton_number', 'jeton_begin_date',
-            'work_region', 'work_district',
         )
         extra_kwargs = {
             'username': {
@@ -133,10 +131,9 @@ class UserUpdateSchoolSerializer(serializers.ModelSerializer):
         validated_data.pop('password', None)  # password ham
 
         # Faqat shu oddiy fieldlarni o'zgartirishga ruxsat beramiz
-        ALLOWED_SIMPLE_FIELDS = ['work_region', 'work_district']
+        ALLOWED_SIMPLE_FIELDS = []
 
 
-        # 2) Oddiy fieldlarni yangilash (FAQAT work_region, work_district)
         for field, value in validated_data.items():
             if field in ALLOWED_SIMPLE_FIELDS:
                 setattr(instance, field, value)
@@ -152,15 +149,15 @@ class UsernameCheckSerializer(serializers.Serializer):
 
 class UserListPublicSerializer(serializers.ModelSerializer):
     role_detail = RoleSerializer(source='roles', many=True, read_only=True)
-    work_region_detail = RegionListSerializer(source='work_region', read_only=True)
-    work_district_detail = DistrictSerializer(source='work_district', read_only=True)
+    region_detail = RegionListSerializer(source='organization.region', read_only=True)
+    district_detail = DistrictSerializer(source='organization.district', read_only=True)
 
     class Meta:
         model = User
         fields = (
             'id', 'username', 'last_name', 'first_name', 'second_name', 'date_of_birthday', 'pinfl', 'roles',
-            'role_detail', 'phone_number', 'passport_series', 'passport_number', 'work_region', 'work_district',
-            'work_region_detail', 'work_district_detail', 'avatar_base64')
+            'role_detail', 'phone_number', 'passport_series', 'passport_number',
+            'region_detail', 'district_detail', 'avatar_base64')
 
 
 
@@ -171,29 +168,27 @@ class UserListNotifSerializer(serializers.ModelSerializer):
         model = User
         fields = (
             'id', 'username', 'last_name', 'first_name', 'second_name', 'date_of_birthday', 'pinfl', 'roles',
-            'role_detail', 'phone_number', 'passport_series', 'passport_number', 'work_region', 'work_district')
+            'role_detail', 'phone_number', 'passport_series', 'passport_number')
 
 
 class UserListPublicInspektorSerializer(serializers.ModelSerializer):
     special_rank_detail = SpecialRankListPublicSerializer(source='special_rank', read_only=True)
-    work_region_detail = RegionListSerializer(source='work_region', read_only=True)
-    work_district_detail = DistrictSerializer(source='work_district', read_only=True)
+    region_detail = RegionListSerializer(source='organization.region', read_only=True)
+    district_detail = DistrictSerializer(source='organization.district', read_only=True)
 
     class Meta:
         model = User
         fields = (
             'id', 'username', 'last_name', 'first_name', 'second_name', 'date_of_birthday', 'gender',
             'phone_number', 'special_rank', 'special_rank_detail', 'pinfl', 'passport_series', 'passport_number',
-            'work_region', 'work_district', 'work_region_detail', 'work_district_detail')
+            'region_detail', 'district_detail')
 
 
 class UserListPublicIdSerializer(serializers.ModelSerializer):
     role_detail = RoleSerializer(source='roles', many=True, read_only=True)
     special_rank_detail = SpecialRankListPublicSerializer(source='special_rank', read_only=True)
-    region_detail = RegionListSerializer(source='region', read_only=True)
-    district_detail = DistrictSerializer(source='district', read_only=True)
-    work_region_detail = RegionListSerializer(source='work_region', read_only=True)
-    work_district_detail = DistrictSerializer(source='work_district', read_only=True)
+    region_detail = RegionListSerializer(source='organization.region', read_only=True)
+    district_detail = DistrictSerializer(source='organization.district', read_only=True)
     organization_detail = OrganizationSerializer(source='organization', read_only=True)
     position_detail = PositionSerializer(source='position', read_only=True)
     department_detail = DepartmentListSerializer(source='department', read_only=True)
@@ -207,11 +202,10 @@ class UserListPublicIdSerializer(serializers.ModelSerializer):
             'id', 'username', 'last_name', 'first_name', 'second_name', 'is_active', 'date_of_birthday', 'gender',
             'phone_number', 'avatar', 'email', 'special_rank', 'special_rank_detail', 'sortings',
             'date_joined', 'roles', 'role_detail', 'password', 'organization', 'organization_detail', 'position',
-            'position_detail', 'department_detail', 'department', 'region',
-            'region_detail', 'district', 'district_detail', 'address', 'pinfl', 'passport_series', 'passport_number',
+            'position_detail', 'department_detail', 'department',
+            'region_detail', 'district_detail', 'address', 'pinfl', 'passport_series', 'passport_number',
             'passport_given_by', 'begin_date', 'end_date', 'avatar_base64', 'jeton_series', 'jeton_number',
-            'jeton_begin_date',
-            'work_region', 'work_district', 'work_region_detail', 'work_district_detail', )
+            'jeton_begin_date',)
 
     def get_avatar(self, obj):
         """
@@ -247,10 +241,8 @@ class UserListPublicIdSerializer(serializers.ModelSerializer):
 class UserMobilListPublicIdSerializer(serializers.ModelSerializer):
     role_detail = RoleSerializer(source='roles', many=True, read_only=True)
     special_rank_detail = SpecialRankListPublicSerializer(source='special_rank', read_only=True)
-    region_detail = RegionListSerializer(source='region', read_only=True)
-    district_detail = DistrictSerializer(source='district', read_only=True)
-    work_region_detail = RegionListSerializer(source='work_region', read_only=True)
-    work_district_detail = DistrictSerializer(source='work_district', read_only=True)
+    region_detail = RegionListSerializer(source='organization.region', read_only=True)
+    district_detail = DistrictSerializer(source='organization.district', read_only=True)
     organization_detail = OrganizationSerializer(source='organization', read_only=True)
     position_detail = PositionSerializer(source='position', read_only=True)
     department_detail = DepartmentListSerializer(source='department', read_only=True)
@@ -261,11 +253,10 @@ class UserMobilListPublicIdSerializer(serializers.ModelSerializer):
             'id', 'username', 'last_name', 'first_name', 'second_name', 'is_active', 'date_of_birthday', 'gender',
             'phone_number', 'avatar', 'email', 'special_rank', 'special_rank_detail',
             'date_joined', 'roles', 'role_detail', 'password', 'organization', 'organization_detail', 'position',
-            'position_detail', 'department_detail', 'department', 'region',
-            'region_detail', 'district', 'district_detail', 'address', 'pinfl', 'passport_series', 'passport_number',
+            'position_detail', 'department_detail', 'department',
+            'region_detail', 'district_detail', 'address', 'pinfl', 'passport_series', 'passport_number',
             'passport_given_by', 'begin_date', 'end_date', 'jeton_series', 'jeton_number',
-            'jeton_begin_date',
-            'work_region', 'work_district', 'work_region_detail', 'work_district_detail')
+            'jeton_begin_date',)
 
 
 

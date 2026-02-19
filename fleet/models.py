@@ -22,6 +22,7 @@ TRANSPORT_DEFAULT_CAPACITY = {
 
 class TransportType(BaseModel):
     name = models.CharField(_('Name'), max_length=100, help_text=_("Transport turining nomi"))
+    icon = models.TextField(_('Icon'), null=True, blank=True, help_text=_("SVG icon matni"))
 
     class Meta:
         verbose_name = _("Transport type")

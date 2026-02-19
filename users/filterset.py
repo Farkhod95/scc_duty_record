@@ -27,8 +27,6 @@ class UserFilter(FilterSet):
             'region': ['exact'],
             'pinfl': ['exact'],
             'district': ['exact'],
-            'work_region': ['exact'],
-            'work_district': ['exact'],
             'jeton_number': ['exact'],
             'first_name': ['exact'],
             'last_name': ['exact'],
