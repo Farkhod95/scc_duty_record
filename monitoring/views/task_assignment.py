@@ -122,8 +122,7 @@ class TaskAssignmentDetailView(RetrieveUpdateDestroyAPIView):
 
 class AbsenceRequestCreateView(APIView):
     """POST: Create an absence request for a task assignment."""
-    serializer_class = AbsenceRequestSerializer
-    permission_classes = [IsOrgAdmin, IsOrgEmployee]
+    permission_classes = [IsOrgAdmin | IsOrgEmployee]
 
     def get_assignment(self, task_id, pk):
         queryset = TaskAssignment.objects.select_related(
