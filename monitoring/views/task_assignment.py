@@ -214,18 +214,12 @@ class AbsenceRequestReviewView(APIView):
 
         serializer.save(reviewed_by=request.user, reviewed_at=timezone.now())
 
-        # If approved with replacement: delete old assignment, create new one
+        # If approved with replacement: swap employee on existing assignment (keeps AbsenceRequest intact)
         if new_status == AbsenceRequestStatus.APPROVED and replacement:
             old_assignment = instance.task_assignment
-            TaskAssignment.objects.create(
-                task=old_assignment.task,
-                employee=replacement,
-                transport=old_assignment.transport,
-                role_in_transport=old_assignment.role_in_transport,
-                note=old_assignment.note,
-                created_by=request.user,
-            )
-            old_assignment.delete()
+            old_assignment.employee = replacement
+            old_assignment.updated_by = request.user
+            old_assignment.save(update_fields=['employee', 'updated_by', 'updated_time'])
 
         return Response(serializer.data, status=status.HTTP_200_OK)
 
