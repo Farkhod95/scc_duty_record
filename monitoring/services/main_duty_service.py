@@ -22,7 +22,7 @@ def send_for_approval(main_duty, user):
         car_transports = set()
         driver_transports = set()
         for assignment in assignments:
-            if assignment.transport and assignment.transport.transport_type == 'CAR':
+            if assignment.transport and assignment.transport.type and assignment.transport.type.name.upper() == 'CAR':
                 car_transports.add(assignment.transport_id)
                 if assignment.role_in_transport == RoleInTransport.DRIVER:
                     driver_transports.add(assignment.transport_id)

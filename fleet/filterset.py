@@ -18,5 +18,5 @@ class TransportFilter(FilterSet):
             'plate_number': ['exact', 'icontains'],
             'name_or_code': ['exact', 'icontains'],
             'organization': ['exact'],
-            'transport_type': ['exact'],
+            'type': ['exact'],
         }

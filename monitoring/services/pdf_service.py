@@ -310,7 +310,7 @@ def generate_main_duty_pdf(main_duty):
                     t_info = f"{t_info} ({t.plate_number})"
                 elif t.number:
                     t_info = f"{t_info} ({t.number})"
-                t_type = t.get_transport_type_display() if hasattr(t, 'get_transport_type_display') else ''
+                t_type = t.type.name if t.type else ''
                 transport_lines.append(f"{t_type}: {t_info}" if t_type else t_info)
             else:
                 transport_lines.append('—')
