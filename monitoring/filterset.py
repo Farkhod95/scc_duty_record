@@ -24,8 +24,8 @@ class MainDutyFilter(FilterSet):
 
     def filter_list_type(self, queryset, name, value):
         today = timezone.localdate()
-        if value == 'today':
-            return queryset.filter(duty_date=today)
+        if value == 'new':
+            return queryset.filter(duty_date__gte=today)
         elif value == 'archive':
             return queryset.filter(duty_date__lt=today)
         return queryset
