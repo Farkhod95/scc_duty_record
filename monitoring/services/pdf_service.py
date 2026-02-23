@@ -1,3 +1,4 @@
+import html
 import io
 import os
 import qrcode
@@ -137,11 +138,11 @@ def _build_qr_block(user, label, styles, qr_size=3 * cm):
     qr_url = f"{base_url}/api/v1/qr/{user.id}/"
     qr_img = _make_qr_image(qr_url, size=qr_size)
 
-    rank_name = _get_user_rank_name(user)
-    position_name = _get_user_position(user)
+    rank_name = html.escape(_get_user_rank_name(user))
+    position_name = html.escape(_get_user_position(user))
 
     cell_data = [
-        [Paragraph(label, styles['qr_label'])],
+        [Paragraph(html.escape(label), styles['qr_label'])],
         [qr_img],
         [Paragraph(rank_name, styles['qr_name'])],
     ]
@@ -181,7 +182,7 @@ def generate_main_duty_pdf(main_duty):
     ).prefetch_related(
         'assignments__employee__special_rank',
         'assignments__employee__position',
-        'assignments__transport',
+        'assignments__transport__type',
     ).order_by('id')
 
     # --- Build PDF ---
@@ -205,15 +206,15 @@ def generate_main_duty_pdf(main_duty):
 
     org_name = main_duty.organization.name if main_duty.organization else ''
     if org_name:
-        tasdiq_lines.append(Paragraph(org_name, styles['right']))
+        tasdiq_lines.append(Paragraph(html.escape(org_name), styles['right']))
 
     if approved_by:
         position_name = _get_user_position(approved_by)
         rank_name = _get_user_rank_name(approved_by)
         if position_name:
-            tasdiq_lines.append(Paragraph(position_name, styles['right']))
+            tasdiq_lines.append(Paragraph(html.escape(position_name), styles['right']))
         tasdiq_lines.append(Spacer(1, 0.4 * cm))
-        tasdiq_lines.append(Paragraph(rank_name, styles['right']))
+        tasdiq_lines.append(Paragraph(html.escape(rank_name), styles['right']))
     else:
         tasdiq_lines.append(Spacer(1, 0.4 * cm))
         tasdiq_lines.append(Paragraph('___________________', styles['right']))
@@ -243,7 +244,7 @@ def generate_main_duty_pdf(main_duty):
     end_str = main_duty.end_time.astimezone(local_tz).strftime('%H:%M') if main_duty.end_time else ''
 
     intro_text = (
-        f"{duty_date_str} kuni {org_name} hududida jamoat tartibini saqlash "
+        f"{duty_date_str} kuni {html.escape(org_name)} hududida jamoat tartibini saqlash "
         f"maqsadida xizmatga jalb qilingan kuch va vositalar taqsimoti "
         f"({start_str} - {end_str}) yuzasidan."
     )
@@ -251,7 +252,7 @@ def generate_main_duty_pdf(main_duty):
     story.append(Spacer(1, 0.5 * cm))
 
     # ─── Asosiy jadval sarlavhasi ───
-    story.append(Paragraph(main_duty.title, styles['title']))
+    story.append(Paragraph(html.escape(main_duty.title), styles['title']))
     story.append(Spacer(1, 0.4 * cm))
 
     # ===================== TABLE =====================
@@ -271,18 +272,18 @@ def generate_main_duty_pdf(main_duty):
     for row_num, task in enumerate(tasks, start=1):
         assignments = list(task.assignments.all())
 
-        task_title = task.title or ''
-        task_type_display = task.get_task_type_display()
+        task_title = html.escape(task.title or '')
+        task_type_display = html.escape(task.get_task_type_display())
 
         # Location
         location_parts = []
         if task.location:
-            location_parts.append(task.location.title)
+            location_parts.append(task.location.title or '')
             if task.location.district:
                 location_parts.append(task.location.district.name or '')
             if task.location.region:
                 location_parts.append(task.location.region.name or '')
-        location_str = ', '.join(filter(None, location_parts))
+        location_str = html.escape(', '.join(filter(None, location_parts)))
 
         # Time
         task_start = task.start_time.astimezone(local_tz).strftime('%H:%M') if task.start_time else ''
@@ -293,8 +294,8 @@ def generate_main_duty_pdf(main_duty):
 
         for assignment in assignments:
             emp = assignment.employee
-            rank_name = _get_user_rank_name(emp)
-            position_name = _get_user_position(emp)
+            rank_name = html.escape(_get_user_rank_name(emp))
+            position_name = html.escape(_get_user_position(emp))
 
             emp_text = rank_name
             if position_name:
@@ -305,17 +306,17 @@ def generate_main_duty_pdf(main_duty):
 
             t = assignment.transport
             if t:
-                t_info = t.name_or_code or t.model or ''
+                t_info = html.escape(t.name_or_code or t.model or '')
                 if t.plate_number:
-                    t_info = f"{t_info} ({t.plate_number})"
+                    t_info = f"{t_info} ({html.escape(t.plate_number)})"
                 elif t.number:
-                    t_info = f"{t_info} ({t.number})"
-                t_type = t.type.name if t.type else ''
+                    t_info = f"{t_info} ({html.escape(t.number)})"
+                t_type = html.escape(t.type.name if t.type else '')
                 transport_lines.append(f"{t_type}: {t_info}" if t_type else t_info)
             else:
                 transport_lines.append('—')
 
-            phone_lines.append(emp.phone_number or '—')
+            phone_lines.append(html.escape(emp.phone_number or '—'))
 
         employees_text = '<br/>'.join(employee_lines) if employee_lines else '—'
         transport_text = '<br/>'.join(transport_lines) if transport_lines else '—'
