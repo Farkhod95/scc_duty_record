@@ -43,7 +43,8 @@ class Country(BaseModel):
 class Region(BaseModel):
     code = models.CharField(_('Region code'), max_length=50, null=True, blank=True, help_text=_("Viloyat kodi"))
     name = models.CharField(max_length=255, null=True, blank=True, help_text=_("Viloyat nomi"))
-    geo_json = models.TextField(_('GeoJson'), blank=True, help_text=_("Deo json"))
+    geo_json = models.TextField(_('GeoJson'), blank=True, help_text=_("Geo json"))
+    boundary_data = models.JSONField(_('Boundary data'), null=True, blank=True, help_text=_("GeoJSON polygon chegarasi"))
 
     class Meta:
         verbose_name = _('region')
@@ -58,6 +59,7 @@ class District(BaseModel):
     name = models.CharField(_('District name'), max_length=255, null=True, blank=True, help_text=_("Tuman nomi"))
     region = models.ForeignKey(Region, related_name='districts', on_delete=models.SET_NULL, null=True, blank=True, help_text=_("Viloyat jadvali bilan bog'lanish"))
     geo_json = models.TextField(_('GeoJson'), blank=True, help_text=_("Geo json"))
+    boundary_data = models.JSONField(_('Boundary data'), null=True, blank=True, help_text=_("GeoJSON polygon chegarasi"))
     is_active = models.BooleanField(_('Active'), default=True, help_text=_("District holati"))
 
     class Meta:
@@ -76,6 +78,7 @@ class Mahalla(BaseModel):
                                  blank=True, help_text=_("Tuman jadvali bilan bog'lanish"))
     inn = models.CharField(_('INN name'), max_length=255, null=True, blank=True, help_text=_("Mahalla INN"))
     new_inn = models.CharField(_('INN name'), max_length=255, null=True, blank=True, help_text=_("Mahalla INN"))
+    boundary_data = models.JSONField(_('Boundary data'), null=True, blank=True, help_text=_("GeoJSON polygon chegarasi"))
 
     class Meta:
         verbose_name = _('Mahalla')
@@ -88,15 +91,19 @@ class Mahalla(BaseModel):
 
 class Organization(BaseModel):
     name = models.CharField(_('Organization name'), max_length=255, null=True, blank=True,
-                            help_text=_("Tashkilotning to‘liq nomini kiriting"))
+                            help_text=_("Tashkilotning to'liq nomini kiriting"))
     number = models.CharField(_('Number'), max_length=255, null=True, blank=True,
                               help_text=_("Tashkilotning raqamini yoki tartib raqamini kiriting"))
     code = models.CharField(_('Code'), max_length=255, null=True, blank=True,
-                            help_text=_("Tashkilotning kodini kiriting (agar mavjud bo‘lsa)"))
+                            help_text=_("Tashkilotning kodini kiriting (agar mavjud bo'lsa)"))
     region = models.ForeignKey(Region, related_name='organ_region', on_delete=models.SET_NULL, null=True, blank=True,
                                help_text=_("Viloyat jadvali bilan bog'lanish"))
     district = models.ForeignKey(District, related_name='organ_district', on_delete=models.SET_NULL, null=True,
                                  blank=True, help_text=_("Tuman jadvali bilan bog'lanish"))
+    stages_count = models.PositiveIntegerField(
+        _('Stages count'), default=2,
+        help_text=_("Bir kunda nechta bosqichli navbatchilik (masalan: PPX=3, Qo'riqlash=2)")
+    )
 
     class Meta:
         verbose_name = _('Organization')
@@ -109,11 +116,48 @@ class Organization(BaseModel):
         return self.name
 
 
+class OrgStageDefinition(BaseModel):
+    """
+    Har bir tashkilot bosqichi uchun default vaqt shabloni.
+    Masalan: PPX 1-bosqich = 08:00–20:00, 2-bosqich = 20:00–08:00
+    """
+    organization = models.ForeignKey(
+        Organization, on_delete=models.CASCADE,
+        related_name='stage_definitions',
+        help_text=_("Qaysi tashkilotga tegishli")
+    )
+    stage_number = models.PositiveIntegerField(
+        _('Stage number'),
+        help_text=_("Bosqich tartib raqami (1, 2, 3...)")
+    )
+    name = models.CharField(
+        _('Stage name'), max_length=100,
+        help_text=_("Bosqich nomi (masalan: '1-bosqich', 'Kunduzgi navbat')")
+    )
+    default_start_time = models.TimeField(
+        _('Default start time'),
+        help_text=_("Bosqich boshlanish vaqti (masalan: 08:00)")
+    )
+    default_end_time = models.TimeField(
+        _('Default end time'),
+        help_text=_("Bosqich tugash vaqti (masalan: 20:00)")
+    )
+
+    class Meta:
+        verbose_name = _('Org stage definition')
+        verbose_name_plural = _('Org stage definitions')
+        unique_together = [['organization', 'stage_number']]
+        ordering = ['organization', 'stage_number']
+
+    def __str__(self):
+        return f"{self.organization.name} — {self.name}"
+
+
 class Department(BaseModel):
     name = models.CharField(_('Department name'), max_length=255, null=True, blank=True,
-                            help_text=_("Bo‘limning nomini kiriting"))
+                            help_text=_("Bo'limning nomini kiriting"))
     organization = models.ForeignKey(Organization, related_name='departments', on_delete=models.SET_NULL, null=True,
-                                     blank=True, help_text=_("Bo‘lim tegishli tashkilotni tanlang"))
+                                     blank=True, help_text=_("Bo'lim tegishli tashkilotni tanlang"))
 
     class Meta:
         verbose_name = _('department')
@@ -127,7 +171,7 @@ class Position(BaseModel):
     name = models.CharField(_('Position name'), max_length=255, null=True, blank=True,
                             help_text=_("Lavozim nomini kiriting"))
     department = models.ForeignKey(Department, related_name='positions', on_delete=models.SET_NULL, null=True,
-                                   blank=True, help_text=_("Lavozim tegishli bo‘lgan bo‘limni tanlang"))
+                                   blank=True, help_text=_("Lavozim tegishli bo'lgan bo'limni tanlang"))
 
     class Meta:
         verbose_name = _('position')

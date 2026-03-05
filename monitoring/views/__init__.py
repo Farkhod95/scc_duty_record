@@ -12,3 +12,18 @@ from monitoring.views.duty_file import DutyFileView, DutyFileDetailView
 from monitoring.views.daily_duty_officer import DailyDutyOfficerView, DailyDutyOfficerDetailView
 from monitoring.views.dashboard import DashboardView
 from monitoring.views.location_tasks import LocationTasksView
+from monitoring.views.attendance import EmployeeAttendanceView
+from monitoring.views.duty_day import (
+    DutyDayListCreateView, DutyDayDetailView,
+    DutySectionDetailView,
+    DutySectionAssignmentListCreateView, DutySectionAssignmentDetailView,
+    DutyDaySubmitView, DutyDayCollectView, DutyDayApproveView, DutyDayRejectView,
+    DistrictDutyView,
+    DutyDayPdfView,
+)
+from monitoring.views.event import (
+    EventListCreateView, EventDetailView,
+    EventAssignmentListCreateView, EventAssignmentDetailView,
+    EventSubmitView, EventCollectView, EventApproveView, EventRejectView,
+    EventPdfView,
+)

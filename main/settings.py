@@ -264,3 +264,9 @@ MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 # Default primary key field type
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# Tashqi tizim integratsiyasi
+# Duty approve bo'lganda shu URL ga POST yuboriladi.
+# Bo'sh qoldirilsa yuborilmaydi.
+EXTERNAL_DUTY_SYNC_URL = env('EXTERNAL_DUTY_SYNC_URL', default='')
+EXTERNAL_SYNC_TOKEN = env('EXTERNAL_SYNC_TOKEN', default='')

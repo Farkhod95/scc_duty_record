@@ -34,7 +34,7 @@ class NotificationCountView(APIView):
 
         # role check
         roles = _role_names(request.user)
-        is_admin_like = ("super admin" in roles) or ("admin" in roles)
+        is_admin_like = "super_admin" in roles or request.user.is_superuser
 
         qs = Notification.objects.filter(status=status_param)
 

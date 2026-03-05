@@ -1,3 +1,5 @@
+import hashlib
+
 from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
 from django.db import models
@@ -12,6 +14,14 @@ from directory.models import Department, Position, Organization
 class CommonInfo(models.Model):
     created_time = models.DateTimeField(auto_now_add=True, auto_now=False)
     updated_time = models.DateTimeField(auto_now_add=False, auto_now=True)
+
+
+class RoleName:
+    """Standard role names used across the system."""
+    SUPER_ADMIN = 'SUPER_ADMIN'        # Full system access
+    OFFICER = 'OFFICER'                # Org-level: creates/submits duties for own org
+    COLLECTOR = 'COLLECTOR'            # District-level: first approval step
+    DISTRICT_ADMIN = 'DISTRICT_ADMIN'  # District-level: final approval
 
 
 class Role(Group):
@@ -83,6 +93,10 @@ class User(AbstractUser):
     special_rank = models.ForeignKey("directory.SpecialRank", related_name='user_special_rank',
                                      on_delete=models.SET_NULL,
                                      null=True, help_text=_("Maxsus unvon"))
+    pinfl_hash = models.CharField(
+        _('PINFL SHA256'), max_length=64, null=True, blank=True, db_index=True,
+        help_text=_("PINFL ning SHA256 xeshi (avtomatik hisoblanadi)"),
+    )
 
     class Meta:
         verbose_name = _('user')
@@ -96,7 +110,10 @@ class User(AbstractUser):
         ]
 
     def save(self, *args, **kwargs):
-        # boshqa custom mantiqingiz bo‘lsa qolsin, token Y O‘ Q
+        if self.pinfl:
+            self.pinfl_hash = hashlib.sha256(self.pinfl.encode('utf-8')).hexdigest()
+        else:
+            self.pinfl_hash = None
         return super().save(*args, **kwargs)
 
     def __str__(self):
@@ -105,17 +122,17 @@ class User(AbstractUser):
             return " ".join([x for x in [self.last_name, self.first_name] if x])
         return self.username or str(self.pk)
 
-    def is_admin(self) -> bool:
-        return self.roles.filter(name__iexact='admin').exists()
+    def is_super_admin(self) -> bool:
+        return self.is_superuser or self.roles.filter(name=RoleName.SUPER_ADMIN).exists()
 
-    def is_manager(self) -> bool:
-        return self.roles.filter(name__iexact='manager').exists()
+    def is_officer(self) -> bool:
+        return self.roles.filter(name=RoleName.OFFICER).exists()
 
-    def is_superadmin(self) -> bool:
-        return self.roles.filter(name__iexact='superadmin').exists()
+    def is_collector(self) -> bool:
+        return self.roles.filter(name=RoleName.COLLECTOR).exists()
 
-    def is_employee(self) -> bool:
-        return self.roles.filter(name__iexact='employee').exists()
+    def is_district_admin(self) -> bool:
+        return self.roles.filter(name=RoleName.DISTRICT_ADMIN).exists()
 
 
 

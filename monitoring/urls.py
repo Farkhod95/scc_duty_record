@@ -10,6 +10,16 @@ from monitoring.views import (
     DailyDutyOfficerView, DailyDutyOfficerDetailView,
     DashboardView,
     LocationTasksView,
+    EmployeeAttendanceView,
+    DutyDayListCreateView, DutyDayDetailView,
+    DutySectionDetailView,
+    DutySectionAssignmentListCreateView, DutySectionAssignmentDetailView,
+    DutyDaySubmitView, DutyDayCollectView, DutyDayApproveView, DutyDayRejectView,
+    DistrictDutyView, DutyDayPdfView,
+    EventListCreateView, EventDetailView,
+    EventAssignmentListCreateView, EventAssignmentDetailView,
+    EventSubmitView, EventCollectView, EventApproveView, EventRejectView,
+    EventPdfView,
 )
 
 urlpatterns = [
@@ -46,4 +56,42 @@ urlpatterns = [
     # DailyDutyOfficer
     re_path(r'^daily-duty-officer/$', DailyDutyOfficerView.as_view(), name='daily_duty_officer_view'),
     path('daily-duty-officer/<int:pk>', DailyDutyOfficerDetailView.as_view(), name='daily_duty_officer_detail_view'),
+
+    # Integration: Employee Attendance
+    re_path(r'^attendance/$', EmployeeAttendanceView.as_view(), name='employee_attendance'),
+
+    # ── Etap 2: Yangi navbatchilik ──────────────────────────────────────────
+    # DutyDay
+    path('duty-days/', DutyDayListCreateView.as_view(), name='duty_day_list'),
+    path('duty-days/<int:pk>/', DutyDayDetailView.as_view(), name='duty_day_detail'),
+
+    # DutySection
+    path('duty-sections/<int:pk>/', DutySectionDetailView.as_view(), name='duty_section_detail'),
+
+    # DutySectionAssignment
+    path('duty-sections/<int:section_id>/assignments/', DutySectionAssignmentListCreateView.as_view(), name='duty_section_assignment_list'),
+    path('duty-section-assignments/<int:pk>/', DutySectionAssignmentDetailView.as_view(), name='duty_section_assignment_detail'),
+
+    # ── Etap 4: Tasdiqlash zanjiri ──────────────────────────────────────────
+    path('duty-days/<int:pk>/submit/', DutyDaySubmitView.as_view(), name='duty_day_submit'),
+    path('duty-days/<int:pk>/collect/', DutyDayCollectView.as_view(), name='duty_day_collect'),
+    path('duty-days/<int:pk>/approve/', DutyDayApproveView.as_view(), name='duty_day_approve'),
+    path('duty-days/<int:pk>/reject/', DutyDayRejectView.as_view(), name='duty_day_reject'),
+
+    # Tuman ko'rinishi (navbatchilik + tadbir)
+    path('district-duty/', DistrictDutyView.as_view(), name='district_duty'),
+
+    # ── Etap 5: Tadbir (Event) ──────────────────────────────────────────────
+    path('events/', EventListCreateView.as_view(), name='event_list'),
+    path('events/<int:pk>/', EventDetailView.as_view(), name='event_detail'),
+    path('events/<int:event_id>/assignments/', EventAssignmentListCreateView.as_view(), name='event_assignment_list'),
+    path('event-assignments/<int:pk>/', EventAssignmentDetailView.as_view(), name='event_assignment_detail'),
+    path('events/<int:pk>/submit/', EventSubmitView.as_view(), name='event_submit'),
+    path('events/<int:pk>/collect/', EventCollectView.as_view(), name='event_collect'),
+    path('events/<int:pk>/approve/', EventApproveView.as_view(), name='event_approve'),
+    path('events/<int:pk>/reject/', EventRejectView.as_view(), name='event_reject'),
+
+    # ── Etap 6: PDF ─────────────────────────────────────────────────────────
+    path('duty-days/<int:pk>/pdf/', DutyDayPdfView.as_view(), name='duty_day_pdf'),
+    path('events/<int:pk>/pdf/', EventPdfView.as_view(), name='event_pdf'),
 ]

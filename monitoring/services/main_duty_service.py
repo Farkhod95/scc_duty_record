@@ -49,6 +49,10 @@ def approve_main_duty(main_duty, approved_by):
     from monitoring.services.pdf_service import generate_main_duty_pdf
     generate_main_duty_pdf(main_duty)
 
+    # Tashqi tizimga duty ma'lumotlarini yuborish
+    from monitoring.services.external_service import send_duty_to_external
+    send_duty_to_external(main_duty)
+
 
 def reject_main_duty(main_duty, rejected_by, reason):
     """SENT_FOR_APPROVAL -> REJECTED."""

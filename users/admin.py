@@ -31,10 +31,10 @@ class CustomUserAdmin(UserAdmin):
     filter_horizontal = ('groups', 'user_permissions',)
     autocomplete_fields = ('district',)
 
-    def is_admin(self, obj) -> bool:
-        return obj.is_admin()
+    def is_super_admin(self, obj) -> bool:
+        return obj.is_super_admin()
 
-    is_admin.boolean = True
+    is_super_admin.boolean = True
 
 
 @admin.register(Role)

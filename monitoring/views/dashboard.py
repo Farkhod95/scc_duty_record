@@ -1,48 +1,150 @@
 from django.db.models import Count, Q
 from django.utils import timezone
-from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from monitoring.models import MainDuty, MainDutyStatus
-from monitoring.serializers.main_duty import MainDutyListSerializer
-from users.utils.permissions import IsOrgAdmin
+from monitoring.models import DutyDay, Event, DutyDayStatus
+from monitoring.serializers.duty_day import DutyDayListSerializer
+from monitoring.serializers.event import EventListSerializer
+
+
+def _duty_day_stats(qs):
+    return qs.aggregate(
+        total=Count('id'),
+        draft=Count('id', filter=Q(status=DutyDayStatus.DRAFT)),
+        submitted=Count('id', filter=Q(status=DutyDayStatus.SUBMITTED)),
+        collected=Count('id', filter=Q(status=DutyDayStatus.COLLECTED)),
+        approved=Count('id', filter=Q(status=DutyDayStatus.APPROVED)),
+        rejected=Count('id', filter=Q(status=DutyDayStatus.REJECTED)),
+    )
+
+
+def _event_stats(qs):
+    return qs.aggregate(
+        total=Count('id'),
+        draft=Count('id', filter=Q(status=DutyDayStatus.DRAFT)),
+        submitted=Count('id', filter=Q(status=DutyDayStatus.SUBMITTED)),
+        collected=Count('id', filter=Q(status=DutyDayStatus.COLLECTED)),
+        approved=Count('id', filter=Q(status=DutyDayStatus.APPROVED)),
+        rejected=Count('id', filter=Q(status=DutyDayStatus.REJECTED)),
+    )
 
 
 class DashboardView(APIView):
-    permission_classes = [IsOrgAdmin]
+    """
+    Rol ga qarab turli ko'rinish qaytaradi.
+
+    OFFICER        → o'z tashkilotining statistikasi + bugungi navbatchilik/tadbir
+    COLLECTOR      → tuman bo'yicha SUBMITTED holatdagilar + umumiy statistika
+    DISTRICT_ADMIN → tuman bo'yicha COLLECTED holatdagilar + umumiy statistika
+    SUPER_ADMIN    → barcha tuman yoki ?district_id=N bilan filtrlash
+    """
+    permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        queryset = MainDuty.objects.select_related('organization', 'created_by')
+        user = request.user
+        today = timezone.localdate()
 
-        if not request.user.is_superuser:
-            queryset = queryset.filter(organization=request.user.organization)
+        if user.is_super_admin():
+            return self._super_admin_view(request, today)
 
-        # Statistika
-        stats = queryset.aggregate(
-            total=Count('id'),
-            pending=Count('id', filter=Q(status=MainDutyStatus.SENT_FOR_APPROVAL)),
-            approved=Count('id', filter=Q(status=MainDutyStatus.APPROVED)),
-            rejected=Count('id', filter=Q(status=MainDutyStatus.REJECTED)),
-            draft=Count('id', filter=Q(status=MainDutyStatus.DRAFT)),
+        if user.is_officer():
+            return self._officer_view(user, today)
+
+        if user.is_collector():
+            return self._district_view(user, today, expected_status=DutyDayStatus.SUBMITTED)
+
+        if user.is_district_admin():
+            return self._district_view(user, today, expected_status=DutyDayStatus.COLLECTED)
+
+        return Response({'detail': "Sizning rolingiz uchun dashboard mavjud emas."}, status=403)
+
+    # ── OFFICER ──────────────────────────────────────────────────────────────
+
+    def _officer_view(self, user, today):
+        org = user.organization
+        if not org:
+            return Response({'detail': "Tashkilot biriktirilmagan."}, status=400)
+
+        duty_qs = DutyDay.objects.filter(organization=org)
+        event_qs = Event.objects.filter(organization=org)
+
+        today_duty = duty_qs.filter(duty_date=today).annotate(
+            sections_count=Count('sections', distinct=True)
+        ).first()
+        today_events = event_qs.filter(event_date=today).annotate(
+            assignments_count=Count('assignments', distinct=True)
         )
 
-        # Bugungi navbatchiliklar
-        today = timezone.localdate()
-        today_duties = queryset.filter(
-            duty_date=today
-        ).annotate(tasks_count=Count('tasks'))
+        return Response({
+            'role': 'OFFICER',
+            'organization': org.name,
+            'duty_days': _duty_day_stats(duty_qs),
+            'events': _event_stats(event_qs),
+            'today_duty_day': DutyDayListSerializer(today_duty).data if today_duty else None,
+            'today_events': EventListSerializer(today_events, many=True).data,
+        })
 
-        serializer = MainDutyListSerializer(today_duties, many=True)
+    # ── COLLECTOR / DISTRICT_ADMIN ────────────────────────────────────────────
+
+    def _district_view(self, user, today, expected_status):
+        district = user.district
+        if not district:
+            return Response({'detail': "Tuman biriktirilmagan."}, status=400)
+
+        duty_qs = DutyDay.objects.filter(organization__district=district)
+        event_qs = Event.objects.filter(organization__district=district)
+
+        # Bugungi pending (expected_status + undan oldingilari ham)
+        today_duty_days = duty_qs.filter(duty_date=today).annotate(
+            sections_count=Count('sections', distinct=True)
+        ).select_related('organization').order_by('organization__name')
+
+        today_events = event_qs.filter(event_date=today).annotate(
+            assignments_count=Count('assignments', distinct=True)
+        ).select_related('organization').order_by('organization__name', 'start_time')
+
+        # Waiting count (nechta tasdiqlash kutmoqda)
+        waiting_duty = duty_qs.filter(status=expected_status).count()
+        waiting_events = event_qs.filter(status=expected_status).count()
 
         return Response({
-            'statistics': {
-                'total': stats['total'],
-                'draft': stats['draft'],
-                'pending': stats['pending'],
-                'approved': stats['approved'],
-                'rejected': stats['rejected'],
-            },
-            'today_duties': serializer.data,
-        }, status=status.HTTP_200_OK)
+            'role': 'COLLECTOR' if expected_status == DutyDayStatus.SUBMITTED else 'DISTRICT_ADMIN',
+            'district': district.name,
+            'today': str(today),
+            'waiting_duty_days': waiting_duty,
+            'waiting_events': waiting_events,
+            'duty_day_stats': _duty_day_stats(duty_qs),
+            'event_stats': _event_stats(event_qs),
+            'today_duty_days': DutyDayListSerializer(today_duty_days, many=True).data,
+            'today_events': EventListSerializer(today_events, many=True).data,
+        })
+
+    # ── SUPER_ADMIN ───────────────────────────────────────────────────────────
+
+    def _super_admin_view(self, request, today):
+        duty_qs = DutyDay.objects.all()
+        event_qs = Event.objects.all()
+
+        district_id = request.query_params.get('district_id')
+        if district_id:
+            duty_qs = duty_qs.filter(organization__district_id=district_id)
+            event_qs = event_qs.filter(organization__district_id=district_id)
+
+        today_duty_days = duty_qs.filter(duty_date=today).annotate(
+            sections_count=Count('sections', distinct=True)
+        ).select_related('organization').order_by('organization__name')
+
+        today_events = event_qs.filter(event_date=today).annotate(
+            assignments_count=Count('assignments', distinct=True)
+        ).select_related('organization').order_by('organization__name')
+
+        return Response({
+            'role': 'SUPER_ADMIN',
+            'today': str(today),
+            'duty_day_stats': _duty_day_stats(duty_qs),
+            'event_stats': _event_stats(event_qs),
+            'today_duty_days': DutyDayListSerializer(today_duty_days, many=True).data,
+            'today_events': EventListSerializer(today_events, many=True).data,
+        })

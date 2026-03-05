@@ -5,68 +5,92 @@ from rest_framework.permissions import BasePermission
 
 
 class IsSuperAdmin(BasePermission):
-    """Faqat superadmin uchun ruxsat"""
-    message = "Faqat superadmin bu amalni bajarishi mumkin"
+    """Full system access. Superuser flag OR SUPER_ADMIN role."""
+    message = "Faqat super admin bu amalni bajarishi mumkin."
 
     def has_permission(self, request, view):
-        if not request.user or not request.user.is_authenticated:
+        if not (request.user and request.user.is_authenticated):
             return False
-        return request.user.is_superuser or request.user.is_superadmin()
+        return request.user.is_super_admin()
 
 
-class IsOrgAdmin(BasePermission):
-    """Organizatsiya admini uchun ruxsat (superadmin ham o'tadi)"""
-    message = "Sizda bu amalni bajarish huquqi yo'q"
+class IsOfficer(BasePermission):
+    """
+    Org-level: creates and submits duties for their own organization.
+    SuperAdmin also passes.
+    """
+    message = "Faqat tashkilot masul xodimi bu amalni bajarishi mumkin."
 
     def has_permission(self, request, view):
-        if not request.user or not request.user.is_authenticated:
+        if not (request.user and request.user.is_authenticated):
             return False
-        if request.user.is_superuser or request.user.is_superadmin():
+        if request.user.is_super_admin():
             return True
-        if request.user.is_admin() or request.user.is_manager():
-            return request.user.organization_id is not None
-        return False
-
-
-class IsManager(BasePermission):
-    """Manager roli uchun ruxsat (superadmin ham o'tadi)"""
-    message = "Faqat Manager bu amalni bajarishi mumkin"
-
-    def has_permission(self, request, view):
-        if not request.user or not request.user.is_authenticated:
-            return False
-        if request.user.is_superuser or request.user.is_superadmin():
-            return True
-        return request.user.is_manager()
-
-
-class IsOrgMember(BasePermission):
-    """Faqat o'z organizatsiyasidagi ma'lumotlarni ko'rish/tahrirlash"""
-    message = "Siz faqat o'z organizatsiyangiz ma'lumotlarini ko'ra olasiz"
-
-    def has_permission(self, request, view):
-        if not request.user or not request.user.is_authenticated:
-            return False
-        if request.user.is_superuser or request.user.is_superadmin():
-            return True
-        return request.user.organization is not None
+        return request.user.is_officer() and request.user.organization_id is not None
 
     def has_object_permission(self, request, view, obj):
-        if request.user.is_superuser or request.user.is_superadmin():
+        if request.user.is_super_admin():
             return True
-        # Object must have organization field
-        if hasattr(obj, 'organization'):
-            return obj.organization == request.user.organization
-        # For objects that belong to user's org through duty
-        if hasattr(obj, 'duty') and hasattr(obj.duty, 'organization'):
-            return obj.duty.organization == request.user.organization
+        if hasattr(obj, 'organization_id'):
+            return obj.organization_id == request.user.organization_id
         return False
 
-class IsOrgEmployee(BasePermission):
+
+class IsCollector(BasePermission):
+    """
+    District-level: sees all submitted duties in their district, first approval.
+    SuperAdmin also passes.
+    """
+    message = "Faqat tuman yig'uvchisi bu amalni bajarishi mumkin."
+
     def has_permission(self, request, view):
-        if request.user.is_employee():
-            return request.user.organization_id is not None
-        return False
+        if not (request.user and request.user.is_authenticated):
+            return False
+        if request.user.is_super_admin():
+            return True
+        return request.user.is_collector() and request.user.district_id is not None
+
+
+class IsDistrictAdmin(BasePermission):
+    """
+    District-level: final approval authority.
+    SuperAdmin also passes.
+    """
+    message = "Faqat tuman admin bu amalni bajarishi mumkin."
+
+    def has_permission(self, request, view):
+        if not (request.user and request.user.is_authenticated):
+            return False
+        if request.user.is_super_admin():
+            return True
+        return request.user.is_district_admin() and request.user.district_id is not None
+
+
+class IsDistrictLevel(BasePermission):
+    """
+    Collector OR DistrictAdmin (or SuperAdmin).
+    Used for read-only district views shared by both roles.
+    """
+    message = "Tuman darajasidagi ruxsat talab etiladi."
+
+    def has_permission(self, request, view):
+        if not (request.user and request.user.is_authenticated):
+            return False
+        if request.user.is_super_admin():
+            return True
+        return (
+            (request.user.is_collector() or request.user.is_district_admin())
+            and request.user.district_id is not None
+        )
+
+
+# ---------------------------------------------------------------------------
+# Backward-compatibility aliases — old monitoring views, replaced in Etap 2+
+# ---------------------------------------------------------------------------
+IsOrgAdmin = IsOfficer
+IsManager = IsOfficer
+IsOrgEmployee = IsOfficer
+IsOrgMember = IsOfficer
 
 
 def get_user_permissions(groups):
