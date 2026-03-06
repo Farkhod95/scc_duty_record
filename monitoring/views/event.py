@@ -24,7 +24,7 @@ from users.utils.permissions import IsOfficer, IsCollector, IsDistrictAdmin, IsD
 
 
 def _event_qs(user):
-    qs = Event.objects.select_related('organization').annotate(
+    qs = Event.objects.select_related('organization', 'created_by').annotate(
         assignments_count=Count('assignments', distinct=True)
     )
     if not user.is_super_admin():
@@ -34,7 +34,7 @@ def _event_qs(user):
 
 def _event_detail_qs(user):
     qs = Event.objects.select_related(
-        'organization',
+        'organization', 'created_by',
         'submitted_by', 'collected_by', 'approved_by', 'rejected_by',
     ).prefetch_related(
         'assignments__employees',

@@ -68,7 +68,7 @@ class DutySectionAssignmentSerializer(serializers.ModelSerializer):
 
 class DutySectionSerializer(serializers.ModelSerializer):
     assignments = DutySectionAssignmentSerializer(many=True, read_only=True)
-    assignments_count = serializers.IntegerField(read_only=True, default=0)
+    assignments_count = serializers.SerializerMethodField()
 
     class Meta:
         model = DutySection
@@ -78,6 +78,9 @@ class DutySectionSerializer(serializers.ModelSerializer):
             'assignments_count', 'assignments',
         ]
         read_only_fields = ['id', 'duty_day', 'stage_number']
+
+    def get_assignments_count(self, obj):
+        return len(obj.assignments.all())
 
 
 class DutySectionUpdateSerializer(serializers.ModelSerializer):

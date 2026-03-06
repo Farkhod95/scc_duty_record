@@ -104,6 +104,7 @@ class EventListSerializer(serializers.ModelSerializer):
     organization_name = serializers.CharField(source='organization.name', read_only=True)
     status_display = serializers.CharField(source='get_status_display', read_only=True)
     assignments_count = serializers.IntegerField(read_only=True, default=0)
+    created_by_name = serializers.SerializerMethodField()
 
     class Meta:
         model = Event
@@ -111,8 +112,13 @@ class EventListSerializer(serializers.ModelSerializer):
             'id', 'organization', 'organization_name',
             'title', 'event_date', 'start_time', 'end_time',
             'status', 'status_display',
-            'assignments_count', 'created_time',
+            'assignments_count',
+            'created_by', 'created_by_name',
+            'created_time',
         ]
+
+    def get_created_by_name(self, obj):
+        return str(obj.created_by) if obj.created_by else None
 
 
 class EventDetailSerializer(serializers.ModelSerializer):
