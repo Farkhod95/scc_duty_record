@@ -159,34 +159,38 @@ class DutySectionAssignmentListCreateView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        serializer = DutySectionAssignmentSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-
-        employee = serializer.validated_data['employee']
-        transport = serializer.validated_data.get('transport')
         org = section.duty_day.organization
+        items = request.data if isinstance(request.data, list) else [request.data]
+        created = []
 
-        if employee.organization_id != org.pk:
-            return Response(
-                {'detail': "Xodim bu tashkilotga tegishli emas."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-        if transport and transport.organization_id != org.pk:
-            return Response(
-                {'detail': "Transport bu tashkilotga tegishli emas."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+        for item in items:
+            serializer = DutySectionAssignmentSerializer(data=item)
+            serializer.is_valid(raise_exception=True)
 
-        # Transport capacity tekshiruvi
-        if transport:
-            try:
-                validate_transport_capacity(section, transport)
-            except ValueError as e:
-                return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+            employee = serializer.validated_data['employee']
+            transport = serializer.validated_data.get('transport')
 
-        assignment = serializer.save(duty_section=section, created_by=request.user)
+            if employee.organization_id != org.pk:
+                return Response(
+                    {'detail': "Xodim bu tashkilotga tegishli emas."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            if transport and transport.organization_id != org.pk:
+                return Response(
+                    {'detail': "Transport bu tashkilotga tegishli emas."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            if transport:
+                try:
+                    validate_transport_capacity(section, transport)
+                except ValueError as e:
+                    return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+            assignment = serializer.save(duty_section=section, created_by=request.user)
+            created.append(assignment)
+
         return Response(
-            DutySectionAssignmentSerializer(assignment).data,
+            DutySectionAssignmentSerializer(created, many=True).data,
             status=status.HTTP_201_CREATED,
         )
 
@@ -374,10 +378,11 @@ class DistrictDutyView(APIView):
         events = Event.objects.filter(
             event_date=date, **district_filter,
         ).select_related(
-            'organization', 'mahalla',
+            'organization',
             'submitted_by', 'collected_by', 'approved_by', 'rejected_by',
         ).prefetch_related(
             'assignments__employee',
+            'assignments__mahalla',
             'assignments__transport',
         ).order_by('organization__name', 'start_time')
 

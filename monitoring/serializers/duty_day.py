@@ -7,9 +7,6 @@ class DutySectionAssignmentSerializer(serializers.ModelSerializer):
     employee_name = serializers.SerializerMethodField()
     mahalla_name = serializers.CharField(source='mahalla.name', read_only=True, default=None)
     transport_name = serializers.SerializerMethodField()
-    role_in_transport_display = serializers.CharField(
-        source='get_role_in_transport_display', read_only=True
-    )
 
     class Meta:
         model = DutySectionAssignment
@@ -18,7 +15,6 @@ class DutySectionAssignmentSerializer(serializers.ModelSerializer):
             'mahalla', 'mahalla_name',
             'employee', 'employee_name',
             'transport', 'transport_name',
-            'role_in_transport', 'role_in_transport_display',
             'note', 'created_time',
         ]
         read_only_fields = ['id', 'duty_section', 'created_time']

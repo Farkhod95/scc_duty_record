@@ -63,14 +63,14 @@ urlpatterns = [
     # ── Etap 2: Yangi navbatchilik ──────────────────────────────────────────
     # DutyDay
     path('duty-days/', DutyDayListCreateView.as_view(), name='duty_day_list'),
-    path('duty-days/<int:pk>/', DutyDayDetailView.as_view(), name='duty_day_detail'),
+    path('duty-days/<int:pk>', DutyDayDetailView.as_view(), name='duty_day_detail'),
 
     # DutySection
-    path('duty-sections/<int:pk>/', DutySectionDetailView.as_view(), name='duty_section_detail'),
+    path('duty-sections/<int:pk>', DutySectionDetailView.as_view(), name='duty_section_detail'),
 
     # DutySectionAssignment
     path('duty-sections/<int:section_id>/assignments/', DutySectionAssignmentListCreateView.as_view(), name='duty_section_assignment_list'),
-    path('duty-section-assignments/<int:pk>/', DutySectionAssignmentDetailView.as_view(), name='duty_section_assignment_detail'),
+    path('duty-section-assignments/<int:pk>', DutySectionAssignmentDetailView.as_view(), name='duty_section_assignment_detail'),
 
     # ── Etap 4: Tasdiqlash zanjiri ──────────────────────────────────────────
     path('duty-days/<int:pk>/submit/', DutyDaySubmitView.as_view(), name='duty_day_submit'),
@@ -83,9 +83,9 @@ urlpatterns = [
 
     # ── Etap 5: Tadbir (Event) ──────────────────────────────────────────────
     path('events/', EventListCreateView.as_view(), name='event_list'),
-    path('events/<int:pk>/', EventDetailView.as_view(), name='event_detail'),
+    path('events/<int:pk>', EventDetailView.as_view(), name='event_detail'),
     path('events/<int:event_id>/assignments/', EventAssignmentListCreateView.as_view(), name='event_assignment_list'),
-    path('event-assignments/<int:pk>/', EventAssignmentDetailView.as_view(), name='event_assignment_detail'),
+    path('event-assignments/<int:pk>', EventAssignmentDetailView.as_view(), name='event_assignment_detail'),
     path('events/<int:pk>/submit/', EventSubmitView.as_view(), name='event_submit'),
     path('events/<int:pk>/collect/', EventCollectView.as_view(), name='event_collect'),
     path('events/<int:pk>/approve/', EventApproveView.as_view(), name='event_approve'),

@@ -5,18 +5,16 @@ from monitoring.models import Event, EventAssignment, DutyDayStatus
 
 class EventAssignmentSerializer(serializers.ModelSerializer):
     employee_name = serializers.SerializerMethodField()
+    mahalla_name = serializers.CharField(source='mahalla.name', read_only=True, default=None)
     transport_name = serializers.SerializerMethodField()
-    role_in_transport_display = serializers.CharField(
-        source='get_role_in_transport_display', read_only=True
-    )
 
     class Meta:
         model = EventAssignment
         fields = [
             'id', 'event',
+            'mahalla', 'mahalla_name',
             'employee', 'employee_name',
             'transport', 'transport_name',
-            'role_in_transport', 'role_in_transport_display',
             'note', 'created_time',
         ]
         read_only_fields = ['id', 'event', 'created_time']
@@ -33,7 +31,7 @@ class EventCreateSerializer(serializers.ModelSerializer):
         model = Event
         fields = [
             'organization', 'title', 'event_date',
-            'start_time', 'end_time', 'mahalla', 'description',
+            'start_time', 'end_time', 'description',
         ]
 
     def validate(self, attrs):
@@ -49,7 +47,7 @@ class EventCreateSerializer(serializers.ModelSerializer):
 class EventUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Event
-        fields = ['title', 'event_date', 'start_time', 'end_time', 'mahalla', 'description']
+        fields = ['title', 'event_date', 'start_time', 'end_time', 'description']
 
     def validate(self, attrs):
         instance = self.instance
@@ -64,7 +62,6 @@ class EventUpdateSerializer(serializers.ModelSerializer):
 
 class EventListSerializer(serializers.ModelSerializer):
     organization_name = serializers.CharField(source='organization.name', read_only=True)
-    mahalla_name = serializers.CharField(source='mahalla.name', read_only=True, default=None)
     status_display = serializers.CharField(source='get_status_display', read_only=True)
     assignments_count = serializers.IntegerField(read_only=True, default=0)
 
@@ -73,7 +70,6 @@ class EventListSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'organization', 'organization_name',
             'title', 'event_date', 'start_time', 'end_time',
-            'mahalla', 'mahalla_name',
             'status', 'status_display',
             'assignments_count', 'created_time',
         ]
@@ -81,7 +77,6 @@ class EventListSerializer(serializers.ModelSerializer):
 
 class EventDetailSerializer(serializers.ModelSerializer):
     organization_name = serializers.CharField(source='organization.name', read_only=True)
-    mahalla_name = serializers.CharField(source='mahalla.name', read_only=True, default=None)
     status_display = serializers.CharField(source='get_status_display', read_only=True)
     assignments = EventAssignmentSerializer(many=True, read_only=True)
     submitted_by_name = serializers.SerializerMethodField()
@@ -94,7 +89,7 @@ class EventDetailSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'organization', 'organization_name',
             'title', 'event_date', 'start_time', 'end_time',
-            'mahalla', 'mahalla_name', 'description',
+            'description',
             'status', 'status_display',
             'submitted_at', 'submitted_by', 'submitted_by_name',
             'collected_at', 'collected_by', 'collected_by_name',

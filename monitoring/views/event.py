@@ -25,7 +25,7 @@ from users.utils.permissions import IsOfficer, IsCollector, IsDistrictAdmin, IsD
 
 
 def _event_qs(user):
-    qs = Event.objects.select_related('organization', 'mahalla').annotate(
+    qs = Event.objects.select_related('organization').annotate(
         assignments_count=Count('assignments', distinct=True)
     )
     if not user.is_super_admin():
@@ -35,10 +35,11 @@ def _event_qs(user):
 
 def _event_detail_qs(user):
     qs = Event.objects.select_related(
-        'organization', 'mahalla',
+        'organization',
         'submitted_by', 'collected_by', 'approved_by', 'rejected_by',
     ).prefetch_related(
         'assignments__employee',
+        'assignments__mahalla',
         'assignments__transport',
     )
     if not user.is_super_admin():
@@ -131,31 +132,37 @@ class EventAssignmentListCreateView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        serializer = EventAssignmentSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-
-        employee = serializer.validated_data['employee']
-        transport = serializer.validated_data.get('transport')
         org = event.organization
+        items = request.data if isinstance(request.data, list) else [request.data]
+        created = []
 
-        if employee.organization_id != org.pk:
-            return Response(
-                {'detail': "Xodim bu tashkilotga tegishli emas."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-        if transport and transport.organization_id != org.pk:
-            return Response(
-                {'detail': "Transport bu tashkilotga tegishli emas."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-        if transport:
-            try:
-                validate_event_transport_capacity(event, transport)
-            except ValueError as e:
-                return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        for item in items:
+            serializer = EventAssignmentSerializer(data=item)
+            serializer.is_valid(raise_exception=True)
 
-        assignment = serializer.save(event=event, created_by=request.user)
-        return Response(EventAssignmentSerializer(assignment).data, status=status.HTTP_201_CREATED)
+            employee = serializer.validated_data['employee']
+            transport = serializer.validated_data.get('transport')
+
+            if employee.organization_id != org.pk:
+                return Response(
+                    {'detail': "Xodim bu tashkilotga tegishli emas."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            if transport and transport.organization_id != org.pk:
+                return Response(
+                    {'detail': "Transport bu tashkilotga tegishli emas."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            if transport:
+                try:
+                    validate_event_transport_capacity(event, transport)
+                except ValueError as e:
+                    return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+            assignment = serializer.save(event=event, created_by=request.user)
+            created.append(assignment)
+
+        return Response(EventAssignmentSerializer(created, many=True).data, status=status.HTTP_201_CREATED)
 
 
 class EventAssignmentDetailView(APIView):

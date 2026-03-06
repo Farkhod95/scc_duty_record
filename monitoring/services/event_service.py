@@ -1,6 +1,6 @@
 from django.utils import timezone
 
-from monitoring.models import Event, EventAssignment, DutyDayStatus, RejectedAtStage, RoleInTransport
+from monitoring.models import Event, EventAssignment, DutyDayStatus, RejectedAtStage
 
 
 def validate_event_transport_capacity(event, transport, exclude_pk=None):
@@ -23,38 +23,12 @@ def validate_event_transport_capacity(event, transport, exclude_pk=None):
         )
 
 
-def _check_event_driver_rules(event):
-    """
-    capacity > 1 bo'lgan har bir transport uchun kamida 1 DRIVER bo'lishi kerak.
-    """
-    assignments = EventAssignment.objects.filter(
-        event=event, transport__isnull=False
-    ).select_related('transport')
-
-    groups: dict[int, list] = {}
-    for a in assignments:
-        groups.setdefault(a.transport_id, []).append(a.role_in_transport)
-
-    for transport_id, roles in groups.items():
-        from fleet.models import Transport
-        try:
-            transport = Transport.objects.get(pk=transport_id)
-        except Transport.DoesNotExist:
-            continue
-        if transport.capacity > 1 and RoleInTransport.DRIVER not in roles:
-            raise ValueError(
-                f"Transport ({transport}) uchun kamida 1 ta haydovchi (DRIVER) tayinlanishi kerak."
-            )
-
-
 def submit_event(event, submitted_by):
     """OFFICER tadbirni tasdiqlashga yuboradi."""
     if event.status != DutyDayStatus.DRAFT:
         raise ValueError("Faqat DRAFT holatidagi tadbirni yuborish mumkin.")
     if not event.assignments.exists():
         raise ValueError("Tadbirga kamida 1 ta xodim biriktirilishi kerak.")
-
-    _check_event_driver_rules(event)
 
     event.status = DutyDayStatus.SUBMITTED
     event.submitted_by = submitted_by

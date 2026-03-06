@@ -111,9 +111,8 @@ def generate_duty_day_pdf(duty_day) -> bytes:
         3.5 * cm,   # Mahalla
         4.5 * cm,   # F.I.O + unvon
         3 * cm,     # Lavozim
-        3.5 * cm,   # Transport
-        2 * cm,     # Rol
-        2.5 * cm,   # Telefon
+        4.5 * cm,   # Transport
+        3 * cm,     # Telefon
     ]
 
     headers = [
@@ -122,7 +121,6 @@ def generate_duty_day_pdf(duty_day) -> bytes:
         Paragraph('<b>F.I.O / Unvon</b>', styles['header']),
         Paragraph('<b>Lavozim</b>', styles['header']),
         Paragraph('<b>Transport</b>', styles['header']),
-        Paragraph('<b>Rol</b>', styles['header']),
         Paragraph('<b>Telefon</b>', styles['header']),
     ]
 
@@ -143,7 +141,7 @@ def generate_duty_day_pdf(duty_day) -> bytes:
             data.append([
                 Paragraph('—', styles['cell_center']),
                 Paragraph('Tayinlanmagan', styles['cell']),
-                *[Paragraph('', styles['cell'])] * 5,
+                *[Paragraph('', styles['cell'])] * 4,
             ])
         else:
             from monitoring.services.pdf_service import _get_user_rank_name, _get_user_position
@@ -163,16 +161,12 @@ def generate_duty_day_pdf(duty_day) -> bytes:
                     if t_num:
                         transport_text += f" ({html.escape(t_num)})"
 
-                role_map = {'DRIVER': 'Haydovchi', 'PASSENGER': 'Yo\'lovchi', 'NONE': '—'}
-                role_text = role_map.get(a.role_in_transport, '—')
-
                 data.append([
                     Paragraph(str(i), styles['cell_center']),
                     Paragraph(mahalla_name, styles['cell']),
                     Paragraph(rank_name, styles['cell_bold']),
                     Paragraph(position_name, styles['cell']),
                     Paragraph(transport_text, styles['cell']),
-                    Paragraph(role_text, styles['cell_center']),
                     Paragraph(html.escape(emp.phone_number or '—'), styles['cell']),
                 ])
 
@@ -236,7 +230,7 @@ def generate_event_pdf(event) -> bytes:
         event.assignments
         .select_related(
             'employee__special_rank', 'employee__position',
-            'transport__type',
+            'transport__type', 'mahalla',
         )
         .order_by('id')
     )
@@ -283,14 +277,11 @@ def generate_event_pdf(event) -> bytes:
     story.append(Spacer(1, 0.8 * cm))
 
     # ── Sarlavha ─────────────────────────────────────────────────────────────
-    mahalla_name = event.mahalla.name if event.mahalla else ''
     start = _time_str(event.start_time)
     end = _time_str(event.end_time)
 
     story.append(Paragraph(html.escape(event.title), styles['title']))
     meta = f"{html.escape(org_name)} | {_date_str(event.event_date)} | {start} – {end}"
-    if mahalla_name:
-        meta += f" | {html.escape(mahalla_name)}"
     story.append(Paragraph(meta, styles['center']))
     if event.description:
         story.append(Spacer(1, 3 * mm))
@@ -298,13 +289,13 @@ def generate_event_pdf(event) -> bytes:
     story.append(Spacer(1, 0.5 * cm))
 
     # ── Jadval ───────────────────────────────────────────────────────────────
-    col_widths = [0.8 * cm, 5 * cm, 4 * cm, 4 * cm, 2.5 * cm, 3 * cm]
+    col_widths = [0.8 * cm, 3.5 * cm, 4.5 * cm, 3 * cm, 4.5 * cm, 3 * cm]
     headers = [
         Paragraph('<b>#</b>', styles['header']),
+        Paragraph('<b>Mahalla</b>', styles['header']),
         Paragraph('<b>F.I.O / Unvon</b>', styles['header']),
         Paragraph('<b>Lavozim</b>', styles['header']),
         Paragraph('<b>Transport</b>', styles['header']),
-        Paragraph('<b>Rol</b>', styles['header']),
         Paragraph('<b>Telefon</b>', styles['header']),
     ]
     data = [headers]
@@ -312,9 +303,9 @@ def generate_event_pdf(event) -> bytes:
     if not assignments:
         data.append([Paragraph('—', styles['cell_center'])] + [Paragraph('', styles['cell'])] * 5)
     else:
-        role_map = {'DRIVER': 'Haydovchi', 'PASSENGER': "Yo'lovchi", 'NONE': '—'}
         for i, a in enumerate(assignments, start=1):
             emp = a.employee
+            mahalla_name = html.escape(a.mahalla.name if a.mahalla else '—')
             transport_text = '—'
             if a.transport:
                 t = a.transport
@@ -327,10 +318,10 @@ def generate_event_pdf(event) -> bytes:
 
             data.append([
                 Paragraph(str(i), styles['cell_center']),
+                Paragraph(mahalla_name, styles['cell']),
                 Paragraph(html.escape(_get_user_rank_name(emp)), styles['cell_bold']),
                 Paragraph(html.escape(_get_user_position(emp)), styles['cell']),
                 Paragraph(transport_text, styles['cell']),
-                Paragraph(role_map.get(a.role_in_transport, '—'), styles['cell_center']),
                 Paragraph(html.escape(emp.phone_number or '—'), styles['cell']),
             ])
 

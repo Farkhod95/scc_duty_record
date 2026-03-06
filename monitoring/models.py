@@ -468,10 +468,6 @@ class DutySectionAssignment(BaseModel):
         'fleet.Transport', on_delete=models.SET_NULL, null=True, blank=True,
         related_name='duty_section_assignments', help_text=_("Transport vositasi")
     )
-    role_in_transport = models.CharField(
-        _('Role in transport'), max_length=20,
-        choices=RoleInTransport.choices, default=RoleInTransport.NONE
-    )
     note = models.TextField(_('Note'), null=True, blank=True)
 
     class Meta:
@@ -490,7 +486,7 @@ class DutySectionAssignment(BaseModel):
 
 class Event(BaseModel):
     """
-    Bir martalik tadbir. Bosqichlarsiz — faqat vaqt, hudud, xodimlar va transport.
+    Bir martalik tadbir. Bosqichlarsiz — faqat vaqt, xodimlar va transport.
     Xuddi DutyDay kabi 3 bosqichli tasdiqlash zanjiri bor.
     """
     organization = models.ForeignKey(
@@ -501,10 +497,6 @@ class Event(BaseModel):
     event_date = models.DateField(_('Event date'), help_text=_("Tadbir sanasi"))
     start_time = models.DateTimeField(_('Start time'), help_text=_("Boshlanish vaqti"))
     end_time = models.DateTimeField(_('End time'), help_text=_("Tugash vaqti"))
-    mahalla = models.ForeignKey(
-        'directory.Mahalla', on_delete=models.SET_NULL, null=True, blank=True,
-        related_name='events', help_text=_("O'tkazilish hududi (mahalla)")
-    )
     description = models.TextField(_('Description'), null=True, blank=True)
     status = models.CharField(
         _('Status'), max_length=20,
@@ -557,10 +549,14 @@ class Event(BaseModel):
 
 
 class EventAssignment(BaseModel):
-    """Tadbir uchun xodim + transport biriktirilishi."""
+    """Tadbir uchun xodim + mahalla + transport biriktirilishi."""
     event = models.ForeignKey(
         Event, on_delete=models.CASCADE,
         related_name='assignments', help_text=_("Qaysi tadbir")
+    )
+    mahalla = models.ForeignKey(
+        'directory.Mahalla', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='event_assignments', help_text=_("Navbatchilik hududi (mahalla)")
     )
     employee = models.ForeignKey(
         User, on_delete=models.CASCADE,
@@ -569,10 +565,6 @@ class EventAssignment(BaseModel):
     transport = models.ForeignKey(
         'fleet.Transport', on_delete=models.SET_NULL, null=True, blank=True,
         related_name='event_assignments', help_text=_("Transport vositasi")
-    )
-    role_in_transport = models.CharField(
-        _('Role in transport'), max_length=20,
-        choices=RoleInTransport.choices, default=RoleInTransport.NONE
     )
     note = models.TextField(_('Note'), null=True, blank=True)
 
