@@ -15,7 +15,6 @@ from monitoring.serializers.event import (
     EventAssignmentSerializer,
 )
 from monitoring.services.event_service import (
-    validate_event_transport_capacity,
     submit_event,
     collect_event,
     approve_event,
@@ -38,9 +37,9 @@ def _event_detail_qs(user):
         'organization',
         'submitted_by', 'collected_by', 'approved_by', 'rejected_by',
     ).prefetch_related(
-        'assignments__employee',
-        'assignments__mahalla',
-        'assignments__transport',
+        'assignments__employees',
+        'assignments__mahallas',
+        'assignments__transports',
     )
     if not user.is_super_admin():
         qs = qs.filter(organization=user.organization)
@@ -121,48 +120,39 @@ class EventAssignmentListCreateView(APIView):
 
     def get(self, request, event_id):
         event = self._get_event(request.user, event_id)
-        assignments = event.assignments.select_related('employee', 'transport')
+        assignments = event.assignments.prefetch_related('employees', 'mahallas', 'transports')
         return Response(EventAssignmentSerializer(assignments, many=True).data)
 
     def post(self, request, event_id):
         event = self._get_event(request.user, event_id)
         if event.status != DutyDayStatus.DRAFT:
             return Response(
-                {'detail': "Faqat DRAFT holatidagi tadbirga xodim biriktirish mumkin."},
+                {'detail': "Faqat DRAFT holatidagi tadbirga biriktirish mumkin."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        serializer = EventAssignmentSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
         org = event.organization
-        items = request.data if isinstance(request.data, list) else [request.data]
-        created = []
+        employees = serializer.validated_data.get('employees', [])
+        transports = serializer.validated_data.get('transports', [])
 
-        for item in items:
-            serializer = EventAssignmentSerializer(data=item)
-            serializer.is_valid(raise_exception=True)
-
-            employee = serializer.validated_data['employee']
-            transport = serializer.validated_data.get('transport')
-
-            if employee.organization_id != org.pk:
+        for emp in employees:
+            if emp.organization_id != org.pk:
                 return Response(
-                    {'detail': "Xodim bu tashkilotga tegishli emas."},
+                    {'detail': f"Xodim '{emp}' bu tashkilotga tegishli emas."},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
-            if transport and transport.organization_id != org.pk:
+        for t in transports:
+            if t.organization_id != org.pk:
                 return Response(
-                    {'detail': "Transport bu tashkilotga tegishli emas."},
+                    {'detail': f"Transport '{t}' bu tashkilotga tegishli emas."},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
-            if transport:
-                try:
-                    validate_event_transport_capacity(event, transport)
-                except ValueError as e:
-                    return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
-            assignment = serializer.save(event=event, created_by=request.user)
-            created.append(assignment)
-
-        return Response(EventAssignmentSerializer(created, many=True).data, status=status.HTTP_201_CREATED)
+        assignment = serializer.save(event=event, created_by=request.user)
+        return Response(EventAssignmentSerializer(assignment).data, status=status.HTTP_201_CREATED)
 
 
 class EventAssignmentDetailView(APIView):
@@ -170,8 +160,8 @@ class EventAssignmentDetailView(APIView):
 
     def _get_assignment(self, user, pk):
         qs = EventAssignment.objects.select_related(
-            'event__organization', 'employee', 'transport'
-        )
+            'event__organization',
+        ).prefetch_related('employees', 'mahallas', 'transports')
         if not user.is_super_admin():
             qs = qs.filter(event__organization=user.organization)
         return get_object_or_404(qs, pk=pk)
@@ -183,17 +173,22 @@ class EventAssignmentDetailView(APIView):
                 {'detail': "Faqat DRAFT holatidagi tayinlashni tahrirlash mumkin."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
+        org = assignment.event.organization
         serializer = EventAssignmentSerializer(assignment, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
 
-        new_transport = serializer.validated_data.get('transport', assignment.transport)
-        if new_transport:
-            try:
-                validate_event_transport_capacity(
-                    assignment.event, new_transport, exclude_pk=assignment.pk
+        for emp in serializer.validated_data.get('employees', []):
+            if emp.organization_id != org.pk:
+                return Response(
+                    {'detail': f"Xodim '{emp}' bu tashkilotga tegishli emas."},
+                    status=status.HTTP_400_BAD_REQUEST,
                 )
-            except ValueError as e:
-                return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        for t in serializer.validated_data.get('transports', []):
+            if t.organization_id != org.pk:
+                return Response(
+                    {'detail': f"Transport '{t}' bu tashkilotga tegishli emas."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
 
         serializer.save(updated_by=request.user)
         assignment.refresh_from_db()
@@ -216,7 +211,7 @@ class EventSubmitView(APIView):
     permission_classes = [IsOfficer]
 
     def post(self, request, pk):
-        qs = Event.objects.prefetch_related('assignments')
+        qs = Event.objects.prefetch_related('assignments__employees')
         if not request.user.is_super_admin():
             qs = qs.filter(organization=request.user.organization)
         event = get_object_or_404(qs, pk=pk)
@@ -273,11 +268,7 @@ class EventRejectView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        stage = (
-            RejectedAtStage.COLLECTOR
-            if request.user.is_collector()
-            else RejectedAtStage.DISTRICT_ADMIN
-        )
+        stage = RejectedAtStage.COLLECTOR if request.user.is_collector() else RejectedAtStage.DISTRICT_ADMIN
 
         try:
             reject_event(event, request.user, reason, stage)
@@ -286,10 +277,9 @@ class EventRejectView(APIView):
         return Response({'detail': "Tadbir rad etildi."})
 
 
-# ── PDF yuklab olish ─────────────────────────────────────────
+# ── PDF ─────────────────────────────────────────────────────
 
 class EventPdfView(APIView):
-    """Tadbir PDF ko'rinishini yuklash."""
     permission_classes = [IsOfficer | IsDistrictLevel]
 
     def get(self, request, pk):

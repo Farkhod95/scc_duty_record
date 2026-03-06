@@ -4,11 +4,25 @@ from operator import itemgetter
 from rest_framework.permissions import BasePermission
 
 
+def _org_in_district(obj, district_id):
+    """obj.organization_id ning districtini tekshiradi."""
+    org_id = getattr(obj, 'organization_id', None)
+    if org_id is None:
+        return False
+    from directory.models import Organization
+    return Organization.objects.filter(pk=org_id, district_id=district_id).exists()
+
+
 class IsSuperAdmin(BasePermission):
     """Full system access. Superuser flag OR SUPER_ADMIN role."""
     message = "Faqat super admin bu amalni bajarishi mumkin."
 
     def has_permission(self, request, view):
+        if not (request.user and request.user.is_authenticated):
+            return False
+        return request.user.is_super_admin()
+
+    def has_object_permission(self, request, view, obj):
         if not (request.user and request.user.is_authenticated):
             return False
         return request.user.is_super_admin()
@@ -29,11 +43,12 @@ class IsOfficer(BasePermission):
         return request.user.is_officer() and request.user.organization_id is not None
 
     def has_object_permission(self, request, view, obj):
+        if not (request.user and request.user.is_authenticated):
+            return False
         if request.user.is_super_admin():
             return True
-        if hasattr(obj, 'organization_id'):
-            return obj.organization_id == request.user.organization_id
-        return False
+        org_id = getattr(obj, 'organization_id', None)
+        return org_id is not None and org_id == request.user.organization_id
 
 
 class IsCollector(BasePermission):
@@ -50,6 +65,17 @@ class IsCollector(BasePermission):
             return True
         return request.user.is_collector() and request.user.district_id is not None
 
+    def has_object_permission(self, request, view, obj):
+        if not (request.user and request.user.is_authenticated):
+            return False
+        if request.user.is_super_admin():
+            return True
+        return (
+            request.user.is_collector()
+            and request.user.district_id is not None
+            and _org_in_district(obj, request.user.district_id)
+        )
+
 
 class IsDistrictAdmin(BasePermission):
     """
@@ -64,6 +90,17 @@ class IsDistrictAdmin(BasePermission):
         if request.user.is_super_admin():
             return True
         return request.user.is_district_admin() and request.user.district_id is not None
+
+    def has_object_permission(self, request, view, obj):
+        if not (request.user and request.user.is_authenticated):
+            return False
+        if request.user.is_super_admin():
+            return True
+        return (
+            request.user.is_district_admin()
+            and request.user.district_id is not None
+            and _org_in_district(obj, request.user.district_id)
+        )
 
 
 class IsDistrictLevel(BasePermission):
@@ -81,6 +118,17 @@ class IsDistrictLevel(BasePermission):
         return (
             (request.user.is_collector() or request.user.is_district_admin())
             and request.user.district_id is not None
+        )
+
+    def has_object_permission(self, request, view, obj):
+        if not (request.user and request.user.is_authenticated):
+            return False
+        if request.user.is_super_admin():
+            return True
+        return (
+            (request.user.is_collector() or request.user.is_district_admin())
+            and request.user.district_id is not None
+            and _org_in_district(obj, request.user.district_id)
         )
 
 

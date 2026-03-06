@@ -450,34 +450,33 @@ class DutySection(BaseModel):
 
 class DutySectionAssignment(BaseModel):
     """
-    Bitta bosqich uchun xodim + mahalla + transport biriktirilishi.
+    Bitta bosqich uchun xodimlar + mahallalar + transportlar biriktirilishi.
     """
     duty_section = models.ForeignKey(
         DutySection, on_delete=models.CASCADE,
         related_name='assignments', help_text=_("Qaysi bosqich")
     )
-    mahalla = models.ForeignKey(
-        'directory.Mahalla', on_delete=models.SET_NULL, null=True, blank=True,
-        related_name='duty_assignments', help_text=_("Navbatchilik hududi (mahalla)")
+    employees = models.ManyToManyField(
+        User, blank=True,
+        related_name='duty_section_assignments', help_text=_("Navbatchi xodimlar")
     )
-    employee = models.ForeignKey(
-        User, on_delete=models.CASCADE,
-        related_name='duty_section_assignments', help_text=_("Navbatchi xodim")
+    mahallas = models.ManyToManyField(
+        'directory.Mahalla', blank=True,
+        related_name='duty_assignments', help_text=_("Navbatchilik hududlari (mahalla)")
     )
-    transport = models.ForeignKey(
-        'fleet.Transport', on_delete=models.SET_NULL, null=True, blank=True,
-        related_name='duty_section_assignments', help_text=_("Transport vositasi")
+    transports = models.ManyToManyField(
+        'fleet.Transport', blank=True,
+        related_name='duty_section_assignments', help_text=_("Transport vositalari")
     )
     note = models.TextField(_('Note'), null=True, blank=True)
 
     class Meta:
         verbose_name = _('Duty section assignment')
         verbose_name_plural = _('Duty section assignments')
-        unique_together = [['duty_section', 'employee']]
         ordering = ['id']
 
     def __str__(self):
-        return f"{self.employee} — {self.duty_section.name}"
+        return f"Assignment #{self.pk} — {self.duty_section.name}"
 
 
 # ============================================================
@@ -549,30 +548,29 @@ class Event(BaseModel):
 
 
 class EventAssignment(BaseModel):
-    """Tadbir uchun xodim + mahalla + transport biriktirilishi."""
+    """Tadbir uchun xodimlar + mahallalar + transportlar biriktirilishi."""
     event = models.ForeignKey(
         Event, on_delete=models.CASCADE,
         related_name='assignments', help_text=_("Qaysi tadbir")
     )
-    mahalla = models.ForeignKey(
-        'directory.Mahalla', on_delete=models.SET_NULL, null=True, blank=True,
-        related_name='event_assignments', help_text=_("Navbatchilik hududi (mahalla)")
+    employees = models.ManyToManyField(
+        User, blank=True,
+        related_name='event_assignments', help_text=_("Tayinlangan xodimlar")
     )
-    employee = models.ForeignKey(
-        User, on_delete=models.CASCADE,
-        related_name='event_assignments', help_text=_("Tayinlangan xodim")
+    mahallas = models.ManyToManyField(
+        'directory.Mahalla', blank=True,
+        related_name='event_assignments', help_text=_("Navbatchilik hududlari (mahalla)")
     )
-    transport = models.ForeignKey(
-        'fleet.Transport', on_delete=models.SET_NULL, null=True, blank=True,
-        related_name='event_assignments', help_text=_("Transport vositasi")
+    transports = models.ManyToManyField(
+        'fleet.Transport', blank=True,
+        related_name='event_assignments', help_text=_("Transport vositalari")
     )
     note = models.TextField(_('Note'), null=True, blank=True)
 
     class Meta:
         verbose_name = _('Event assignment')
         verbose_name_plural = _('Event assignments')
-        unique_together = [['event', 'employee']]
         ordering = ['id']
 
     def __str__(self):
-        return f"{self.employee} — {self.event.title}"
+        return f"Assignment #{self.pk} — {self.event.title}"

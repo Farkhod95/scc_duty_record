@@ -1,4 +1,4 @@
-from django.db.models import Count, Prefetch
+from django.db.models import Count
 from django.http import HttpResponse
 from django.utils.text import get_valid_filename
 from rest_framework import status
@@ -17,7 +17,6 @@ from monitoring.serializers.duty_day import (
 )
 from monitoring.services.duty_day_service import (
     create_duty_day_with_sections,
-    validate_transport_capacity,
     submit_duty_day,
     collect_duty_day,
     approve_duty_day,
@@ -27,7 +26,7 @@ from users.utils.permissions import IsOfficer, IsCollector, IsDistrictAdmin, IsD
 
 
 def _duty_day_qs(user):
-    qs = DutyDay.objects.select_related('organization').annotate(
+    qs = DutyDay.objects.select_related('organization', 'created_by').annotate(
         sections_count=Count('sections', distinct=True)
     )
     if not user.is_super_admin():
@@ -40,9 +39,9 @@ def _duty_day_detail_qs(user):
         'organization',
         'submitted_by', 'collected_by', 'approved_by', 'rejected_by',
     ).prefetch_related(
-        'sections__assignments__employee',
-        'sections__assignments__mahalla',
-        'sections__assignments__transport',
+        'sections__assignments__employees',
+        'sections__assignments__mahallas',
+        'sections__assignments__transports',
     )
     if not user.is_super_admin():
         qs = qs.filter(organization=user.organization)
@@ -79,8 +78,7 @@ class DutyDayListCreateView(APIView):
             )
 
         duty_day = create_duty_day_with_sections(org, duty_date, request.user)
-        qs = _duty_day_detail_qs(request.user)
-        duty_day = get_object_or_404(qs, pk=duty_day.pk)
+        duty_day = get_object_or_404(_duty_day_detail_qs(request.user), pk=duty_day.pk)
         return Response(DutyDayDetailSerializer(duty_day).data, status=status.HTTP_201_CREATED)
 
 
@@ -109,9 +107,9 @@ class DutySectionDetailView(APIView):
         qs = DutySection.objects.select_related(
             'duty_day__organization'
         ).prefetch_related(
-            'assignments__employee',
-            'assignments__mahalla',
-            'assignments__transport',
+            'assignments__employees',
+            'assignments__mahallas',
+            'assignments__transports',
         ).annotate(assignments_count=Count('assignments', distinct=True))
         if not user.is_super_admin():
             qs = qs.filter(duty_day__organization=user.organization)
@@ -146,53 +144,39 @@ class DutySectionAssignmentListCreateView(APIView):
 
     def get(self, request, section_id):
         section = self._get_section(request.user, section_id)
-        assignments = section.assignments.select_related(
-            'employee', 'mahalla', 'transport'
-        )
+        assignments = section.assignments.prefetch_related('employees', 'mahallas', 'transports')
         return Response(DutySectionAssignmentSerializer(assignments, many=True).data)
 
     def post(self, request, section_id):
         section = self._get_section(request.user, section_id)
         if section.duty_day.status != DutyDayStatus.DRAFT:
             return Response(
-                {'detail': "Faqat DRAFT holatidagi seksiyaga xodim biriktirish mumkin."},
+                {'detail': "Faqat DRAFT holatidagi seksiyaga biriktirish mumkin."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        serializer = DutySectionAssignmentSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
         org = section.duty_day.organization
-        items = request.data if isinstance(request.data, list) else [request.data]
-        created = []
+        employees = serializer.validated_data.get('employees', [])
+        transports = serializer.validated_data.get('transports', [])
 
-        for item in items:
-            serializer = DutySectionAssignmentSerializer(data=item)
-            serializer.is_valid(raise_exception=True)
-
-            employee = serializer.validated_data['employee']
-            transport = serializer.validated_data.get('transport')
-
-            if employee.organization_id != org.pk:
+        for emp in employees:
+            if emp.organization_id != org.pk:
                 return Response(
-                    {'detail': "Xodim bu tashkilotga tegishli emas."},
+                    {'detail': f"Xodim '{emp}' bu tashkilotga tegishli emas."},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
-            if transport and transport.organization_id != org.pk:
+        for t in transports:
+            if t.organization_id != org.pk:
                 return Response(
-                    {'detail': "Transport bu tashkilotga tegishli emas."},
+                    {'detail': f"Transport '{t}' bu tashkilotga tegishli emas."},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
-            if transport:
-                try:
-                    validate_transport_capacity(section, transport)
-                except ValueError as e:
-                    return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
-            assignment = serializer.save(duty_section=section, created_by=request.user)
-            created.append(assignment)
-
-        return Response(
-            DutySectionAssignmentSerializer(created, many=True).data,
-            status=status.HTTP_201_CREATED,
-        )
+        assignment = serializer.save(duty_section=section, created_by=request.user)
+        return Response(DutySectionAssignmentSerializer(assignment).data, status=status.HTTP_201_CREATED)
 
 
 class DutySectionAssignmentDetailView(APIView):
@@ -201,8 +185,7 @@ class DutySectionAssignmentDetailView(APIView):
     def _get_assignment(self, user, pk):
         qs = DutySectionAssignment.objects.select_related(
             'duty_section__duty_day__organization',
-            'employee', 'mahalla', 'transport',
-        )
+        ).prefetch_related('employees', 'mahallas', 'transports')
         if not user.is_super_admin():
             qs = qs.filter(duty_section__duty_day__organization=user.organization)
         return get_object_or_404(qs, pk=pk)
@@ -214,20 +197,22 @@ class DutySectionAssignmentDetailView(APIView):
                 {'detail': "Faqat DRAFT holatidagi tayinlashni tahrirlash mumkin."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        serializer = DutySectionAssignmentSerializer(
-            assignment, data=request.data, partial=True
-        )
+        org = assignment.duty_section.duty_day.organization
+        serializer = DutySectionAssignmentSerializer(assignment, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
 
-        # Agar transport o'zgartirilayotgan bo'lsa capacity tekshiruvi
-        new_transport = serializer.validated_data.get('transport', assignment.transport)
-        if new_transport:
-            try:
-                validate_transport_capacity(
-                    assignment.duty_section, new_transport, exclude_pk=assignment.pk
+        for emp in serializer.validated_data.get('employees', []):
+            if emp.organization_id != org.pk:
+                return Response(
+                    {'detail': f"Xodim '{emp}' bu tashkilotga tegishli emas."},
+                    status=status.HTTP_400_BAD_REQUEST,
                 )
-            except ValueError as e:
-                return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        for t in serializer.validated_data.get('transports', []):
+            if t.organization_id != org.pk:
+                return Response(
+                    {'detail': f"Transport '{t}' bu tashkilotga tegishli emas."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
 
         serializer.save(updated_by=request.user)
         assignment.refresh_from_db()
@@ -245,15 +230,14 @@ class DutySectionAssignmentDetailView(APIView):
 
 
 # ============================================================
-# Etap 4 — Tasdiqlash zanjiri action view'lari
+# Etap 4 — Tasdiqlash zanjiri
 # ============================================================
 
 class DutyDaySubmitView(APIView):
-    """OFFICER navbatchilikni tasdiqlashga yuboradi."""
     permission_classes = [IsOfficer]
 
     def post(self, request, pk):
-        qs = DutyDay.objects.prefetch_related('sections__assignments')
+        qs = DutyDay.objects.prefetch_related('sections__assignments__employees')
         if not request.user.is_super_admin():
             qs = qs.filter(organization=request.user.organization)
         duty_day = get_object_or_404(qs, pk=pk)
@@ -265,11 +249,9 @@ class DutyDaySubmitView(APIView):
 
 
 class DutyDayCollectView(APIView):
-    """COLLECTOR (yig'uvchi) birinchi tasdiqlash."""
     permission_classes = [IsCollector]
 
     def post(self, request, pk):
-        # COLLECTOR faqat o'z tumanini ko'radi
         qs = DutyDay.objects.select_related('organization')
         if not request.user.is_super_admin():
             qs = qs.filter(organization__district=request.user.district)
@@ -282,7 +264,6 @@ class DutyDayCollectView(APIView):
 
 
 class DutyDayApproveView(APIView):
-    """DISTRICT_ADMIN yakuniy tasdiqlash."""
     permission_classes = [IsDistrictAdmin]
 
     def post(self, request, pk):
@@ -298,7 +279,6 @@ class DutyDayApproveView(APIView):
 
 
 class DutyDayRejectView(APIView):
-    """COLLECTOR yoki DISTRICT_ADMIN rad etadi."""
     permission_classes = [IsCollector | IsDistrictAdmin]
 
     def post(self, request, pk):
@@ -315,10 +295,7 @@ class DutyDayRejectView(APIView):
             )
 
         from monitoring.models import RejectedAtStage
-        if request.user.is_collector():
-            stage = RejectedAtStage.COLLECTOR
-        else:
-            stage = RejectedAtStage.DISTRICT_ADMIN
+        stage = RejectedAtStage.COLLECTOR if request.user.is_collector() else RejectedAtStage.DISTRICT_ADMIN
 
         try:
             reject_duty_day(duty_day, request.user, reason, stage)
@@ -328,18 +305,10 @@ class DutyDayRejectView(APIView):
 
 
 # ============================================================
-# Etap 4 — Tuman ko'rinishi (COLLECTOR + DISTRICT_ADMIN)
+# Tuman ko'rinishi
 # ============================================================
 
 class DistrictDutyView(APIView):
-    """
-    Tuman bo'yicha bir kundagi barcha navbatchilik va tadbirlar.
-    COLLECTOR: SUBMITTED holatdagilarni ko'radi.
-    DISTRICT_ADMIN: COLLECTED holatdagilarni ko'radi.
-    SUPER_ADMIN: ?district_id=N bilan istalgan tumanni ko'radi.
-
-    Response: { "duty_days": [...], "events": [...] }
-    """
     permission_classes = [IsDistrictLevel]
 
     def get(self, request):
@@ -370,9 +339,9 @@ class DistrictDutyView(APIView):
             'organization',
             'submitted_by', 'collected_by', 'approved_by', 'rejected_by',
         ).prefetch_related(
-            'sections__assignments__employee',
-            'sections__assignments__mahalla',
-            'sections__assignments__transport',
+            'sections__assignments__employees',
+            'sections__assignments__mahallas',
+            'sections__assignments__transports',
         ).order_by('organization__name')
 
         events = Event.objects.filter(
@@ -381,9 +350,9 @@ class DistrictDutyView(APIView):
             'organization',
             'submitted_by', 'collected_by', 'approved_by', 'rejected_by',
         ).prefetch_related(
-            'assignments__employee',
-            'assignments__mahalla',
-            'assignments__transport',
+            'assignments__employees',
+            'assignments__mahallas',
+            'assignments__transports',
         ).order_by('organization__name', 'start_time')
 
         return Response({
@@ -393,11 +362,10 @@ class DistrictDutyView(APIView):
 
 
 # ============================================================
-# PDF yuklab olish
+# PDF
 # ============================================================
 
 class DutyDayPdfView(APIView):
-    """Navbatchilik PDF ko'rinishini yuklash."""
     permission_classes = [IsOfficer | IsDistrictLevel]
 
     def get(self, request, pk):

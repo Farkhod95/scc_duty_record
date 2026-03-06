@@ -55,37 +55,18 @@ def create_duty_day_with_sections(organization, duty_date, created_by):
     return duty_day
 
 
-def validate_transport_capacity(duty_section, transport, exclude_pk=None):
-    """
-    Transport capacity qoidasini tekshiradi.
-    Bir seksiyada bir transportga biriktirilgan xodimlar soni capacity dan oshmasligi kerak.
-    Raises ValueError agar limit oshsa.
-    """
-    if transport is None:
-        return
-
-    qs = DutySectionAssignment.objects.filter(
-        duty_section=duty_section,
-        transport=transport,
-    )
-    if exclude_pk:
-        qs = qs.exclude(pk=exclude_pk)
-
-    current_count = qs.count()
-    if current_count >= transport.capacity:
-        raise ValueError(
-            f"Transport to'ldi. Sig'im: {transport.capacity}, "
-            f"hozir biriktirilgan: {current_count}."
-        )
-
 
 def submit_duty_day(duty_day, submitted_by):
     """OFFICER navbatchilikni tasdiqlashga yuboradi."""
     if duty_day.status != DutyDayStatus.DRAFT:
         raise ValueError("Faqat DRAFT holatidagi navbatchilikni yuborish mumkin.")
 
+    from django.db.models import Count
     for section in duty_day.sections.all():
-        if not section.assignments.exists():
+        has_employees = section.assignments.annotate(
+            emp_count=Count('employees')
+        ).filter(emp_count__gt=0).exists()
+        if not has_employees:
             raise ValueError(
                 f"'{section.name}' seksiyasida kamida 1 ta navbatchi bo'lishi kerak."
             )

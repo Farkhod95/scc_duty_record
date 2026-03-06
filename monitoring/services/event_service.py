@@ -3,31 +3,17 @@ from django.utils import timezone
 from monitoring.models import Event, EventAssignment, DutyDayStatus, RejectedAtStage
 
 
-def validate_event_transport_capacity(event, transport, exclude_pk=None):
-    """
-    Tadbir ichida transport sig'imini tekshiradi.
-    Raises ValueError agar limit oshsa.
-    """
-    if transport is None:
-        return
-
-    qs = EventAssignment.objects.filter(event=event, transport=transport)
-    if exclude_pk:
-        qs = qs.exclude(pk=exclude_pk)
-
-    current_count = qs.count()
-    if current_count >= transport.capacity:
-        raise ValueError(
-            f"Transport to'ldi. Sig'im: {transport.capacity}, "
-            f"hozir biriktirilgan: {current_count}."
-        )
-
 
 def submit_event(event, submitted_by):
     """OFFICER tadbirni tasdiqlashga yuboradi."""
     if event.status != DutyDayStatus.DRAFT:
         raise ValueError("Faqat DRAFT holatidagi tadbirni yuborish mumkin.")
-    if not event.assignments.exists():
+
+    from django.db.models import Count
+    has_employees = event.assignments.annotate(
+        emp_count=Count('employees')
+    ).filter(emp_count__gt=0).exists()
+    if not has_employees:
         raise ValueError("Tadbirga kamida 1 ta xodim biriktirilishi kerak.")
 
     event.status = DutyDayStatus.SUBMITTED

@@ -48,10 +48,10 @@ def generate_duty_day_pdf(duty_day) -> bytes:
     sections = list(
         duty_day.sections
         .prefetch_related(
-            'assignments__employee__special_rank',
-            'assignments__employee__position',
-            'assignments__mahalla',
-            'assignments__transport__type',
+            'assignments__employees__special_rank',
+            'assignments__employees__position',
+            'assignments__mahallas',
+            'assignments__transports__type',
         )
         .order_by('stage_number')
     )
@@ -145,30 +145,30 @@ def generate_duty_day_pdf(duty_day) -> bytes:
             ])
         else:
             from monitoring.services.pdf_service import _get_user_rank_name, _get_user_position
-            for i, a in enumerate(assignments, start=1):
-                emp = a.employee
-                mahalla_name = html.escape(a.mahalla.name if a.mahalla else '—')
-                rank_name = html.escape(_get_user_rank_name(emp))
-                position_name = html.escape(_get_user_position(emp))
-
-                transport_text = '—'
-                if a.transport:
-                    t = a.transport
-                    t_code = html.escape(t.name_or_code or t.model or '')
+            row_num = 1
+            for a in assignments:
+                mahalla_names = ', '.join(m.name for m in a.mahallas.all()) or '—'
+                transport_parts = []
+                for t in a.transports.all():
+                    t_code = t.name_or_code or t.model or ''
                     t_num = t.plate_number or t.number or ''
-                    t_type = html.escape(t.type.name if t.type else '')
-                    transport_text = f"{t_type}: {t_code}"
+                    t_type = t.type.name if t.type else ''
+                    part = f"{t_type}: {t_code}" if t_type else t_code
                     if t_num:
-                        transport_text += f" ({html.escape(t_num)})"
+                        part += f" ({t_num})"
+                    transport_parts.append(part)
+                transport_text = html.escape(', '.join(transport_parts) or '—')
 
-                data.append([
-                    Paragraph(str(i), styles['cell_center']),
-                    Paragraph(mahalla_name, styles['cell']),
-                    Paragraph(rank_name, styles['cell_bold']),
-                    Paragraph(position_name, styles['cell']),
-                    Paragraph(transport_text, styles['cell']),
-                    Paragraph(html.escape(emp.phone_number or '—'), styles['cell']),
-                ])
+                for emp in a.employees.all():
+                    data.append([
+                        Paragraph(str(row_num), styles['cell_center']),
+                        Paragraph(html.escape(mahalla_names), styles['cell']),
+                        Paragraph(html.escape(_get_user_rank_name(emp)), styles['cell_bold']),
+                        Paragraph(html.escape(_get_user_position(emp)), styles['cell']),
+                        Paragraph(transport_text, styles['cell']),
+                        Paragraph(html.escape(emp.phone_number or '—'), styles['cell']),
+                    ])
+                    row_num += 1
 
         table = Table(data, colWidths=col_widths, repeatRows=1)
         style_cmds = [
@@ -228,9 +228,9 @@ def generate_event_pdf(event) -> bytes:
 
     assignments = list(
         event.assignments
-        .select_related(
-            'employee__special_rank', 'employee__position',
-            'transport__type', 'mahalla',
+        .prefetch_related(
+            'employees__special_rank', 'employees__position',
+            'transports__type', 'mahallas',
         )
         .order_by('id')
     )
@@ -303,27 +303,30 @@ def generate_event_pdf(event) -> bytes:
     if not assignments:
         data.append([Paragraph('—', styles['cell_center'])] + [Paragraph('', styles['cell'])] * 5)
     else:
-        for i, a in enumerate(assignments, start=1):
-            emp = a.employee
-            mahalla_name = html.escape(a.mahalla.name if a.mahalla else '—')
-            transport_text = '—'
-            if a.transport:
-                t = a.transport
-                t_code = html.escape(t.name_or_code or t.model or '')
+        row_num = 1
+        for a in assignments:
+            mahalla_names = ', '.join(m.name for m in a.mahallas.all()) or '—'
+            transport_parts = []
+            for t in a.transports.all():
+                t_code = t.name_or_code or t.model or ''
                 t_num = t.plate_number or t.number or ''
-                t_type = html.escape(t.type.name if t.type else '')
-                transport_text = f"{t_type}: {t_code}" if t_type else t_code
+                t_type = t.type.name if t.type else ''
+                part = f"{t_type}: {t_code}" if t_type else t_code
                 if t_num:
-                    transport_text += f" ({html.escape(t_num)})"
+                    part += f" ({t_num})"
+                transport_parts.append(part)
+            transport_text = html.escape(', '.join(transport_parts) or '—')
 
-            data.append([
-                Paragraph(str(i), styles['cell_center']),
-                Paragraph(mahalla_name, styles['cell']),
-                Paragraph(html.escape(_get_user_rank_name(emp)), styles['cell_bold']),
-                Paragraph(html.escape(_get_user_position(emp)), styles['cell']),
-                Paragraph(transport_text, styles['cell']),
-                Paragraph(html.escape(emp.phone_number or '—'), styles['cell']),
-            ])
+            for emp in a.employees.all():
+                data.append([
+                    Paragraph(str(row_num), styles['cell_center']),
+                    Paragraph(html.escape(mahalla_names), styles['cell']),
+                    Paragraph(html.escape(_get_user_rank_name(emp)), styles['cell_bold']),
+                    Paragraph(html.escape(_get_user_position(emp)), styles['cell']),
+                    Paragraph(transport_text, styles['cell']),
+                    Paragraph(html.escape(emp.phone_number or '—'), styles['cell']),
+                ])
+                row_num += 1
 
     table = Table(data, colWidths=col_widths, repeatRows=1)
     style_cmds = [
