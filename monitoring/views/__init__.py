@@ -18,7 +18,7 @@ from monitoring.views.duty_day import (
     DutySectionDetailView,
     DutySectionAssignmentListCreateView, DutySectionAssignmentDetailView,
     DutyDaySubmitView, DutyDayCollectView, DutyDayApproveView, DutyDayRejectView,
-    DistrictDutyView,
+    DistrictDutyView, DistrictDutyDetailView,
     DutyDayPdfView,
 )
 from monitoring.views.event import (

@@ -358,16 +358,43 @@ class DistrictDutyView(APIView):
 
         today = timezone.localdate()
         if view_type == 'archive':
-            duty_days = base_duty_qs.filter(duty_date__lt=today)
-            events = base_event_qs.filter(event_date__lt=today)
+            duty_days = list(base_duty_qs.filter(duty_date__lt=today))
+            events = list(base_event_qs.filter(event_date__lt=today))
         else:
-            duty_days = base_duty_qs.filter(duty_date__gte=today)
-            events = base_event_qs.filter(event_date__gte=today)
+            duty_days = list(base_duty_qs.filter(duty_date__gte=today))
+            events = list(base_event_qs.filter(event_date__gte=today))
+
+        sections_count = sum(dd.sections.count() for dd in duty_days)
 
         return Response({
+            'sections_count': sections_count,
+            'events_count': len(events),
             'duty_days': DutyDayDetailSerializer(duty_days, many=True).data,
             'events': EventDetailSerializer(events, many=True).data,
         })
+
+
+class DistrictDutyDetailView(APIView):
+    permission_classes = [IsDistrictLevel]
+
+    def get(self, request, pk):
+        if request.user.is_super_admin():
+            qs = DutyDay.objects.all()
+        else:
+            qs = DutyDay.objects.filter(organization__district=request.user.district)
+
+        duty_day = get_object_or_404(
+            qs.select_related(
+                'organization',
+                'submitted_by', 'collected_by', 'approved_by', 'rejected_by',
+            ).prefetch_related(
+                'sections__assignments__employees',
+                'sections__assignments__mahallas',
+                'sections__assignments__transports',
+            ),
+            pk=pk,
+        )
+        return Response(DutyDayDetailSerializer(duty_day).data)
 
 
 # ============================================================

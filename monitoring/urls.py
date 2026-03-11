@@ -15,7 +15,7 @@ from monitoring.views import (
     DutySectionDetailView,
     DutySectionAssignmentListCreateView, DutySectionAssignmentDetailView,
     DutyDaySubmitView, DutyDayCollectView, DutyDayApproveView, DutyDayRejectView,
-    DistrictDutyView, DutyDayPdfView,
+    DistrictDutyView, DistrictDutyDetailView, DutyDayPdfView,
     EventListCreateView, EventDetailView,
     EventAssignmentListCreateView, EventAssignmentDetailView,
     EventSubmitView, EventCollectView, EventApproveView, EventRejectView,
@@ -80,6 +80,7 @@ urlpatterns = [
 
     # Tuman ko'rinishi (navbatchilik + tadbir)
     path('district-duty/', DistrictDutyView.as_view(), name='district_duty'),
+    path('district-duty/<int:pk>/', DistrictDutyDetailView.as_view(), name='district_duty_detail'),
 
     # ── Etap 5: Tadbir (Event) ──────────────────────────────────────────────
     path('events/', EventListCreateView.as_view(), name='event_list'),
