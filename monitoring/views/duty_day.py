@@ -1,5 +1,6 @@
 from django.db.models import Count
 from django.http import HttpResponse
+from django.utils import timezone
 from django.utils.text import get_valid_filename
 from rest_framework import status
 from rest_framework.generics import get_object_or_404
@@ -315,13 +316,6 @@ class DistrictDutyView(APIView):
         from monitoring.models import Event
         from monitoring.serializers.event import EventDetailSerializer
 
-        date = request.query_params.get('date')
-        if not date:
-            return Response(
-                {'detail': "date parametri majburiy (YYYY-MM-DD)."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
         view_type = request.query_params.get('type')
         if view_type not in ('archive', 'new'):
             return Response(
@@ -362,12 +356,13 @@ class DistrictDutyView(APIView):
             'assignments__transports',
         ).order_by('event_date', 'organization__name', 'start_time')
 
+        today = timezone.localdate()
         if view_type == 'archive':
-            duty_days = base_duty_qs.filter(duty_date__lt=date)
-            events = base_event_qs.filter(event_date__lt=date)
+            duty_days = base_duty_qs.filter(duty_date__lt=today)
+            events = base_event_qs.filter(event_date__lt=today)
         else:
-            duty_days = base_duty_qs.filter(duty_date__gte=date)
-            events = base_event_qs.filter(event_date__gte=date)
+            duty_days = base_duty_qs.filter(duty_date__gte=today)
+            events = base_event_qs.filter(event_date__gte=today)
 
         return Response({
             'duty_days': DutyDayDetailSerializer(duty_days, many=True).data,
