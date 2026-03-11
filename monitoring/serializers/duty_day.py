@@ -127,6 +127,7 @@ class DutyDayListSerializer(serializers.ModelSerializer):
 class DutyDayDetailSerializer(serializers.ModelSerializer):
     organization_name = serializers.CharField(source='organization.name', read_only=True)
     status_display = serializers.CharField(source='get_status_display', read_only=True)
+    sections_count = serializers.SerializerMethodField()
     sections = DutySectionSerializer(many=True, read_only=True)
     submitted_by_name = serializers.SerializerMethodField()
     collected_by_name = serializers.SerializerMethodField()
@@ -143,9 +144,12 @@ class DutyDayDetailSerializer(serializers.ModelSerializer):
             'approved_at', 'approved_by', 'approved_by_name',
             'rejected_at', 'rejected_by', 'rejected_by_name',
             'rejection_reason', 'rejected_at_stage',
-            'sections',
+            'sections_count', 'sections',
             'created_time', 'updated_time',
         ]
+
+    def get_sections_count(self, obj):
+        return obj.sections.count()
 
     def get_submitted_by_name(self, obj):
         return str(obj.submitted_by) if obj.submitted_by else None

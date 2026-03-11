@@ -358,17 +358,13 @@ class DistrictDutyView(APIView):
 
         today = timezone.localdate()
         if view_type == 'archive':
-            duty_days = list(base_duty_qs.filter(duty_date__lt=today))
-            events = list(base_event_qs.filter(event_date__lt=today))
+            duty_days = base_duty_qs.filter(duty_date__lt=today)
+            events = base_event_qs.filter(event_date__lt=today)
         else:
-            duty_days = list(base_duty_qs.filter(duty_date__gte=today))
-            events = list(base_event_qs.filter(event_date__gte=today))
-
-        sections_count = sum(dd.sections.count() for dd in duty_days)
+            duty_days = base_duty_qs.filter(duty_date__gte=today)
+            events = base_event_qs.filter(event_date__gte=today)
 
         return Response({
-            'sections_count': sections_count,
-            'events_count': len(events),
             'duty_days': DutyDayDetailSerializer(duty_days, many=True).data,
             'events': EventDetailSerializer(events, many=True).data,
         })
