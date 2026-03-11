@@ -322,6 +322,13 @@ class DistrictDutyView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        view_type = request.query_params.get('type')
+        if view_type not in ('archive', 'new'):
+            return Response(
+                {'detail': "type parametri majburiy: 'archive' yoki 'new'."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         if request.user.is_super_admin():
             district_id = request.query_params.get('district_id')
             if not district_id:
@@ -333,8 +340,8 @@ class DistrictDutyView(APIView):
         else:
             district_filter = {'organization__district': request.user.district}
 
-        duty_days = DutyDay.objects.filter(
-            duty_date=date, **district_filter,
+        base_duty_qs = DutyDay.objects.filter(
+            **district_filter,
         ).select_related(
             'organization',
             'submitted_by', 'collected_by', 'approved_by', 'rejected_by',
@@ -342,10 +349,10 @@ class DistrictDutyView(APIView):
             'sections__assignments__employees',
             'sections__assignments__mahallas',
             'sections__assignments__transports',
-        ).order_by('organization__name')
+        ).order_by('duty_date', 'organization__name')
 
-        events = Event.objects.filter(
-            event_date=date, **district_filter,
+        base_event_qs = Event.objects.filter(
+            **district_filter,
         ).select_related(
             'organization',
             'submitted_by', 'collected_by', 'approved_by', 'rejected_by',
@@ -353,7 +360,14 @@ class DistrictDutyView(APIView):
             'assignments__employees',
             'assignments__mahallas',
             'assignments__transports',
-        ).order_by('organization__name', 'start_time')
+        ).order_by('event_date', 'organization__name', 'start_time')
+
+        if view_type == 'archive':
+            duty_days = base_duty_qs.filter(duty_date__lt=date)
+            events = base_event_qs.filter(event_date__lt=date)
+        else:
+            duty_days = base_duty_qs.filter(duty_date__gte=date)
+            events = base_event_qs.filter(event_date__gte=date)
 
         return Response({
             'duty_days': DutyDayDetailSerializer(duty_days, many=True).data,
