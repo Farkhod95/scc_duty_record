@@ -41,7 +41,7 @@ def _duty_day_detail_qs(user):
         'submitted_by', 'collected_by', 'approved_by', 'rejected_by',
     ).prefetch_related(
         'sections__assignments__employees',
-        'sections__assignments__mahallas',
+        'sections__assignments__location',
         'sections__assignments__transports',
     )
     if not user.is_super_admin():
@@ -109,7 +109,7 @@ class DutySectionDetailView(APIView):
             'duty_day__organization'
         ).prefetch_related(
             'assignments__employees',
-            'assignments__mahallas',
+            'assignments__location',
             'assignments__transports',
         ).annotate(assignments_count=Count('assignments', distinct=True))
         if not user.is_super_admin():
@@ -145,7 +145,7 @@ class DutySectionAssignmentListCreateView(APIView):
 
     def get(self, request, section_id):
         section = self._get_section(request.user, section_id)
-        assignments = section.assignments.prefetch_related('employees', 'mahallas', 'transports')
+        assignments = section.assignments.prefetch_related('employees', 'transports').select_related('location')
         return Response(DutySectionAssignmentSerializer(assignments, many=True).data)
 
     def post(self, request, section_id):
@@ -185,8 +185,8 @@ class DutySectionAssignmentDetailView(APIView):
 
     def _get_assignment(self, user, pk):
         qs = DutySectionAssignment.objects.select_related(
-            'duty_section__duty_day__organization',
-        ).prefetch_related('employees', 'mahallas', 'transports')
+            'duty_section__duty_day__organization', 'location',
+        ).prefetch_related('employees', 'transports')
         if not user.is_super_admin():
             qs = qs.filter(duty_section__duty_day__organization=user.organization)
         return get_object_or_404(qs, pk=pk)
@@ -341,7 +341,7 @@ class DistrictDutyView(APIView):
             'submitted_by', 'collected_by', 'approved_by', 'rejected_by',
         ).prefetch_related(
             'sections__assignments__employees',
-            'sections__assignments__mahallas',
+            'sections__assignments__location',
             'sections__assignments__transports',
         ).order_by('duty_date', 'organization__name')
 
@@ -385,7 +385,7 @@ class DistrictDutyDetailView(APIView):
                 'submitted_by', 'collected_by', 'approved_by', 'rejected_by',
             ).prefetch_related(
                 'sections__assignments__employees',
-                'sections__assignments__mahallas',
+                'sections__assignments__location',
                 'sections__assignments__transports',
             ),
             pk=pk,

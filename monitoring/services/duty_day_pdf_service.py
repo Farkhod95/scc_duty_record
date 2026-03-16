@@ -50,8 +50,8 @@ def generate_duty_day_pdf(duty_day) -> bytes:
         .prefetch_related(
             'assignments__employees__special_rank',
             'assignments__employees__position',
-            'assignments__mahallas',
             'assignments__transports__type',
+            'assignments__location__mahallas',
         )
         .order_by('stage_number')
     )
@@ -147,7 +147,10 @@ def generate_duty_day_pdf(duty_day) -> bytes:
             from monitoring.services.pdf_service import _get_user_rank_name, _get_user_position
             row_num = 1
             for a in assignments:
-                mahalla_names = ', '.join(m.name for m in a.mahallas.all()) or '—'
+                if a.location:
+                    mahalla_names = ', '.join(m.name for m in a.location.mahallas.all()) or a.location.title
+                else:
+                    mahalla_names = '—'
                 transport_parts = []
                 for t in a.transports.all():
                     t_code = t.name_or_code or t.model or ''

@@ -1,7 +1,7 @@
 from django.contrib.auth import get_user_model
 from rest_framework import serializers
 
-from directory.models import Mahalla
+from directory.models import Location
 from fleet.models import Transport
 from monitoring.models import DutyDay, DutySection, DutySectionAssignment
 
@@ -12,14 +12,14 @@ class DutySectionAssignmentSerializer(serializers.ModelSerializer):
     employees = serializers.PrimaryKeyRelatedField(
         many=True, queryset=User.objects.all(), required=False
     )
-    mahallas = serializers.PrimaryKeyRelatedField(
-        many=True, queryset=Mahalla.objects.all(), required=False
+    location = serializers.PrimaryKeyRelatedField(
+        queryset=Location.objects.all(), required=False, allow_null=True
     )
     transports = serializers.PrimaryKeyRelatedField(
         many=True, queryset=Transport.objects.all(), required=False
     )
     employees_detail = serializers.SerializerMethodField()
-    mahallas_detail = serializers.SerializerMethodField()
+    location_title = serializers.CharField(source='location.title', read_only=True, default=None)
     transports_detail = serializers.SerializerMethodField()
 
     class Meta:
@@ -27,7 +27,7 @@ class DutySectionAssignmentSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'duty_section',
             'employees', 'employees_detail',
-            'mahallas', 'mahallas_detail',
+            'location', 'location_title',
             'transports', 'transports_detail',
             'note', 'created_time',
         ]
@@ -36,31 +36,23 @@ class DutySectionAssignmentSerializer(serializers.ModelSerializer):
     def get_employees_detail(self, obj):
         return [{'id': e.pk, 'name': str(e)} for e in obj.employees.all()]
 
-    def get_mahallas_detail(self, obj):
-        return [{'id': m.pk, 'name': m.name} for m in obj.mahallas.all()]
-
     def get_transports_detail(self, obj):
         return [{'id': t.pk, 'name': str(t)} for t in obj.transports.all()]
 
     def create(self, validated_data):
         employees = validated_data.pop('employees', [])
-        mahallas = validated_data.pop('mahallas', [])
         transports = validated_data.pop('transports', [])
         instance = super().create(validated_data)
         instance.employees.set(employees)
-        instance.mahallas.set(mahallas)
         instance.transports.set(transports)
         return instance
 
     def update(self, instance, validated_data):
         employees = validated_data.pop('employees', None)
-        mahallas = validated_data.pop('mahallas', None)
         transports = validated_data.pop('transports', None)
         instance = super().update(instance, validated_data)
         if employees is not None:
             instance.employees.set(employees)
-        if mahallas is not None:
-            instance.mahallas.set(mahallas)
         if transports is not None:
             instance.transports.set(transports)
         return instance

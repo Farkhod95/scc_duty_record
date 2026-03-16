@@ -48,8 +48,8 @@ class DailyDutyOfficerAdmin(admin.ModelAdmin):
 class DutySectionAssignmentInline(admin.StackedInline):
     model = DutySectionAssignment
     extra = 0
-    filter_horizontal = ('employees', 'mahallas', 'transports')
-    fields = ('employees', 'mahallas', 'transports', 'note')
+    filter_horizontal = ('employees', 'transports')
+    fields = ('employees', 'location', 'transports', 'note')
 
 
 class DutySectionInline(admin.TabularInline):

@@ -61,7 +61,7 @@ class LocationWithTasksSerializer(serializers.ModelSerializer):
         model = Location
         fields = [
             'id', 'region', 'region_name', 'district', 'district_name',
-            'title', 'key', 'has_boundary', 'boundary_data',
+            'title', 'has_boundary', 'boundary_data',
             'tasks_count', 'tasks',
         ]
 
