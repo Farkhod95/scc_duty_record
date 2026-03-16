@@ -69,7 +69,7 @@ class SpecialRankAdmin(admin.ModelAdmin):
 class LocationPointInline(admin.TabularInline):
     model = LocationPoint
     extra = 0
-    fields = ('order', 'name', 'start_time', 'end_time')
+    fields = ('order', 'name', 'latitude', 'longitude', 'start_time', 'end_time')
     ordering = ('order',)
 
 

@@ -281,7 +281,7 @@ class PositionListPublicSerializer(LocaleSerializer):
 class LocationPointSerializer(serializers.ModelSerializer):
     class Meta:
         model = LocationPoint
-        fields = ['id', 'order', 'name', 'start_time', 'end_time']
+        fields = ['id', 'order', 'name', 'latitude', 'longitude', 'start_time', 'end_time']
 
 
 class LocationSerializer(serializers.ModelSerializer):

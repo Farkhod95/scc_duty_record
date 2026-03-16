@@ -205,11 +205,6 @@ class Location(BaseModel):
 
 
 class LocationPoint(BaseModel):
-    """
-    Location ichidagi ketma-ket nuqtalar (checkpoint).
-    Navbatchi qaysi vaqtda qaysi nuqtada bo'lishi kerakligi.
-    Masalan: 1-nuqta 16:00–16:30, 2-nuqta 17:00–17:30.
-    """
     location = models.ForeignKey(
         Location, on_delete=models.CASCADE,
         related_name='points', help_text=_("Qaysi locationga tegishli")
@@ -220,6 +215,14 @@ class LocationPoint(BaseModel):
     name = models.CharField(
         _('Name'), max_length=255, null=True, blank=True,
         help_text=_("Nuqta nomi (ixtiyoriy)")
+    )
+    latitude = models.DecimalField(
+        _('Latitude'), max_digits=9, decimal_places=6,
+        null=True, blank=True, help_text=_("Kenglik (masalan: 41.299335)")
+    )
+    longitude = models.DecimalField(
+        _('Longitude'), max_digits=9, decimal_places=6,
+        null=True, blank=True, help_text=_("Uzunlik (masalan: 69.240073)")
     )
     start_time = models.TimeField(
         _('Start time'), help_text=_("Navbatchi bu nuqtaga kelish vaqti")
