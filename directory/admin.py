@@ -2,7 +2,7 @@ from django.contrib import admin
 
 from directory.models import (
     Country, Nationality, Region, District, Mahalla,
-    Department, Position, SpecialRank, Location,
+    Department, Position, SpecialRank, Location, LocationPoint,
     Organization, OrgStageDefinition,
 )
 
@@ -66,12 +66,21 @@ class SpecialRankAdmin(admin.ModelAdmin):
     search_fields = ('name',)
 
 
+class LocationPointInline(admin.TabularInline):
+    model = LocationPoint
+    extra = 0
+    fields = ('order', 'name', 'start_time', 'end_time')
+    ordering = ('order',)
+
+
 @admin.register(Location)
 class LocationAdmin(admin.ModelAdmin):
-    list_display = ('title', 'key', 'region', 'district', 'created_time')
-    search_fields = ('title', 'key')
+    list_display = ('title', 'region', 'district', 'created_time')
+    search_fields = ('title',)
     list_filter = ('region', 'district')
+    filter_horizontal = ('mahallas',)
     readonly_fields = ('created_time', 'updated_time', 'created_by', 'updated_by')
+    inlines = [LocationPointInline]
 
 
 class OrgStageDefinitionInline(admin.TabularInline):
