@@ -8,7 +8,7 @@ from rest_framework.permissions import AllowAny
 
 from directory.filterset import RegionssFilter
 from directory.models import Region
-from directory.serializers import RegionSerializer, RegionListSerializer
+from directory.serializers import RegionSerializer, RegionListSerializer, RegionDetailSerializer
 
 from restapp.pagination import ResultsSetPagination
 from restapp.utils.responses import nonContent
@@ -255,7 +255,7 @@ class RegionDetailView(RetrieveUpdateDestroyAPIView):
 
     def get(self, request, pk):
         region = get_object_or_404(Region, id=pk)
-        serializer = RegionListSerializer(region)
+        serializer = RegionDetailSerializer(region)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     def put(self, request, pk):

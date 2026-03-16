@@ -7,7 +7,7 @@ from rest_framework.views import APIView
 
 from directory.filterset import MahallaFilter
 from directory.models import Mahalla
-from directory.serializers import MahallaSerializer, MahallaListSerializer
+from directory.serializers import MahallaSerializer, MahallaListSerializer, MahallaDetailSerializer
 
 from restapp.pagination import ResultsSetPagination
 from restapp.utils.responses import nonContent
@@ -61,7 +61,7 @@ class MahallaDetailView(RetrieveUpdateDestroyAPIView):
 
     def get(self, request, pk):
         instance = get_object_or_404(Mahalla, id=pk)
-        serializer = MahallaListSerializer(instance)
+        serializer = MahallaDetailSerializer(instance)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     def put(self, request, pk):

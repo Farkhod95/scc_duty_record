@@ -9,7 +9,7 @@ from rest_framework.permissions import AllowAny
 
 from directory.filterset import DistrictFilter
 from directory.models import District, Region
-from directory.serializers import DistrictListSerializer, DistrictSerializer
+from directory.serializers import DistrictListSerializer, DistrictSerializer, DistrictDetailSerializer
 
 from restapp.pagination import ResultsSetPagination
 
@@ -3158,7 +3158,7 @@ class DistrictDetailView(RetrieveUpdateDestroyAPIView):
 
     def get(self, request, pk):
         district = get_object_or_404(District, id=pk)
-        serializer = DistrictListSerializer(district)
+        serializer = DistrictDetailSerializer(district)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     def put(self, request, pk):
