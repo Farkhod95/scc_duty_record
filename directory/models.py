@@ -185,18 +185,55 @@ class Location(BaseModel):
     region = models.ForeignKey(Region, related_name='locations', on_delete=models.SET_NULL, null=True, blank=True)
     district = models.ForeignKey(District, related_name='locations', on_delete=models.SET_NULL, null=True, blank=True)
     title = models.CharField(_('Title'), max_length=255, help_text=_("Location nomi"))
-    key = models.CharField(_('Key'), max_length=100, unique=True, help_text=_("Location unique key/kodi"))
     boundary_data = models.JSONField(null=True, blank=True)
+    mahallas = models.ManyToManyField(
+        'Mahalla', blank=True,
+        related_name='locations', help_text=_("Location ichidagi mahallalar")
+    )
 
     class Meta:
         verbose_name = _('location')
         verbose_name_plural = _('locations')
         ordering = ['title']
         indexes = [
-            models.Index(fields=['key']),
             models.Index(fields=['region']),
             models.Index(fields=['district']),
         ]
 
     def __str__(self):
-        return f"{self.title} ({self.key})"
+        return self.title
+
+
+class LocationPoint(BaseModel):
+    """
+    Location ichidagi ketma-ket nuqtalar (checkpoint).
+    Navbatchi qaysi vaqtda qaysi nuqtada bo'lishi kerakligi.
+    Masalan: 1-nuqta 16:00–16:30, 2-nuqta 17:00–17:30.
+    """
+    location = models.ForeignKey(
+        Location, on_delete=models.CASCADE,
+        related_name='points', help_text=_("Qaysi locationga tegishli")
+    )
+    order = models.PositiveIntegerField(
+        _('Order'), help_text=_("Nuqta ketma-ketlik raqami (1, 2, 3...)")
+    )
+    name = models.CharField(
+        _('Name'), max_length=255, null=True, blank=True,
+        help_text=_("Nuqta nomi (ixtiyoriy)")
+    )
+    start_time = models.TimeField(
+        _('Start time'), help_text=_("Navbatchi bu nuqtaga kelish vaqti")
+    )
+    end_time = models.TimeField(
+        _('End time'), help_text=_("Navbatchi bu nuqtadan ketish vaqti")
+    )
+
+    class Meta:
+        verbose_name = _('Location point')
+        verbose_name_plural = _('Location points')
+        unique_together = [['location', 'order']]
+        ordering = ['location', 'order']
+
+    def __str__(self):
+        name_part = f" — {self.name}" if self.name else ""
+        return f"{self.location.title} #{self.order}{name_part} ({self.start_time}–{self.end_time})"

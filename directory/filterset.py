@@ -107,5 +107,4 @@ class LocationFilter(FilterSet):
             'region': ['exact'],
             'district': ['exact'],
             'title': ['exact', 'icontains'],
-            'key': ['exact'],
         }

@@ -10,7 +10,7 @@ from .views.region import RegionView, RegionDetailView, RegionFieldInfoView
 
 from .views.special_rank import SpecialRankView, SpecialRankDetailView, SpecialRankFieldInfoView
 
-from directory.views.location import LocationView, LocationDetailView, LocationFieldInfoView
+from directory.views.location import LocationView, LocationDetailView, LocationFieldInfoView, LocationPointView, LocationPointDetailView
 
 urlpatterns = [
     re_path(r'^special-rank/$', SpecialRankView.as_view(), name='special_rank_view'),
@@ -46,6 +46,8 @@ urlpatterns = [
     path('department/fields/', DepartmentFieldInfoView.as_view(), name='department_fields_info'),
 
     re_path(r'^location/$', LocationView.as_view(), name='location_view'),
-    path('location/<int:pk>', LocationDetailView.as_view(), name='location_detail_view'),
+    path('location/<int:pk>/', LocationDetailView.as_view(), name='location_detail_view'),
     path('location/fields/', LocationFieldInfoView.as_view(), name='location_fields_info'),
+    path('location/<int:location_pk>/points/', LocationPointView.as_view(), name='location_points_view'),
+    path('location/<int:location_pk>/points/<int:pk>/', LocationPointDetailView.as_view(), name='location_point_detail_view'),
 ]

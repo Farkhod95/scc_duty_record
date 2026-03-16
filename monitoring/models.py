@@ -450,7 +450,7 @@ class DutySection(BaseModel):
 
 class DutySectionAssignment(BaseModel):
     """
-    Bitta bosqich uchun xodimlar + mahallalar + transportlar biriktirilishi.
+    Bitta bosqich uchun xodimlar + location + transportlar biriktirilishi.
     """
     duty_section = models.ForeignKey(
         DutySection, on_delete=models.CASCADE,
@@ -460,9 +460,9 @@ class DutySectionAssignment(BaseModel):
         User, blank=True,
         related_name='duty_section_assignments', help_text=_("Navbatchi xodimlar")
     )
-    mahallas = models.ManyToManyField(
-        'directory.Mahalla', blank=True,
-        related_name='duty_assignments', help_text=_("Navbatchilik hududlari (mahalla)")
+    location = models.ForeignKey(
+        'directory.Location', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='duty_section_assignments', help_text=_("Navbatchilik joyi (location)")
     )
     transports = models.ManyToManyField(
         'fleet.Transport', blank=True,

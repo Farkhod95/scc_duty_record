@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from .models import Region, District, Position, Department, Country, Mahalla,  Organization, Nationality, SpecialRank, Location
+from .models import Region, District, Position, Department, Country, Mahalla, Organization, Nationality, SpecialRank, Location, LocationPoint
 
 
 # Tarjima asosiy serializeri
@@ -278,30 +278,28 @@ class PositionListPublicSerializer(LocaleSerializer):
         fields = ('id', 'name')
 
 
+class LocationPointSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = LocationPoint
+        fields = ['id', 'order', 'name', 'start_time', 'end_time']
+
+
 class LocationSerializer(serializers.ModelSerializer):
+    mahallas = serializers.PrimaryKeyRelatedField(
+        queryset=Mahalla.objects.all(), many=True, required=False
+    )
+
     class Meta:
         model = Location
         fields = [
-            'id', 'region', 'district', 'title', 'key', 'boundary_data',
+            'id', 'region', 'district', 'title', 'boundary_data', 'mahallas',
             'created_time', 'updated_time', 'created_by', 'updated_by'
         ]
         read_only_fields = ['id', 'created_time', 'updated_time', 'created_by', 'updated_by']
 
-    def validate_key(self, value):
-        instance = self.instance
-        if instance:
-            if Location.objects.exclude(pk=instance.pk).filter(key=value).exists():
-                raise serializers.ValidationError("Bu key allaqachon mavjud")
-        else:
-            if Location.objects.filter(key=value).exists():
-                raise serializers.ValidationError("Bu key allaqachon mavjud")
-        return value
-
     def validate_boundary_data(self, value):
-        if value:
-            if not isinstance(value, dict):
-                raise serializers.ValidationError("Boundary data dict bo'lishi kerak")
-
+        if value and not isinstance(value, dict):
+            raise serializers.ValidationError("Boundary data dict bo'lishi kerak")
         return value
 
 
@@ -309,16 +307,20 @@ class LocationListSerializer(serializers.ModelSerializer):
     region_name = serializers.CharField(source='region.name', read_only=True, allow_null=True)
     district_name = serializers.CharField(source='district.name', read_only=True, allow_null=True)
     has_boundary = serializers.SerializerMethodField()
+    mahallas_count = serializers.SerializerMethodField()
 
     class Meta:
         model = Location
         fields = [
             'id', 'region', 'region_name', 'district', 'district_name',
-            'title', 'key', 'has_boundary', 'created_time'
+            'title', 'has_boundary', 'mahallas_count', 'created_time'
         ]
 
     def get_has_boundary(self, obj):
         return obj.boundary_data is not None and bool(obj.boundary_data)
+
+    def get_mahallas_count(self, obj):
+        return obj.mahallas.count()
 
 
 class LocationDetailSerializer(serializers.ModelSerializer):
@@ -328,13 +330,15 @@ class LocationDetailSerializer(serializers.ModelSerializer):
     district_code = serializers.CharField(source='district.code', read_only=True, allow_null=True)
     created_by_name = serializers.CharField(source='created_by.get_full_name', read_only=True)
     updated_by_name = serializers.CharField(source='updated_by.get_full_name', read_only=True)
+    mahallas = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
+    points = LocationPointSerializer(many=True, read_only=True)
 
     class Meta:
         model = Location
         fields = [
             'id', 'region', 'region_name', 'region_code',
             'district', 'district_name', 'district_code',
-            'title', 'key', 'boundary_data',
+            'title', 'boundary_data', 'mahallas', 'points',
             'created_time', 'updated_time',
             'created_by', 'created_by_name',
             'updated_by', 'updated_by_name'
