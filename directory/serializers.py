@@ -116,7 +116,7 @@ class RegionListSerializer(LocaleSerializer):
     class Meta:
         model = Region
         fields = (
-        'id', 'code', 'name', 'name_uz', 'name_uz_cyrl', 'name_ru', 'name_kaa')
+        'id', 'code', 'name', 'name_uz', 'name_uz_cyrl', 'name_ru', 'name_kaa', 'boundary_data')
 
 
 class RegionListPublicSerializer(LocaleSerializer):
@@ -143,7 +143,7 @@ class DistrictListSerializer(LocaleSerializer):
     class Meta:
         model = District
         fields = (
-            'id', 'code', 'name', 'name_uz', 'name_uz_cyrl', 'name_ru', 'name_kaa', 'region', 'region_detail', 'is_active')
+            'id', 'code', 'name', 'name_uz', 'name_uz_cyrl', 'name_ru', 'name_kaa', 'region', 'region_detail', 'is_active', 'boundary_data')
 
 
 class DistrictSerializer(LocaleSerializer):
@@ -185,7 +185,7 @@ class MahallaListSerializer(LocaleSerializer):
         model = Mahalla
         fields = (
             'id', 'code', 'name', 'name_uz', 'name_uz_cyrl', 'name_ru', 'name_kaa', 'region', 'district',
-            'region_detail', 'district_detail', 'inn', 'new_inn')
+            'region_detail', 'district_detail', 'inn', 'new_inn', 'boundary_data')
 
 
 class MahallaListPublicSerializer(LocaleSerializer):
