@@ -354,7 +354,6 @@ class DailyDutyOfficer(BaseModel):
                     'officer': _("Dijur admin tashkilotga tegishli bo'lishi kerak.")
                 })
 
-
 # ============================================================
 # Etap 2 — Yangi navbatchilik arxitekturasi
 # ============================================================

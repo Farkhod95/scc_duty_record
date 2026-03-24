@@ -111,7 +111,6 @@ class RegionSerializer(LocaleSerializer):
             'name_kaa': {"required": True},
         }
 
-
 class RegionListSerializer(LocaleSerializer):
     class Meta:
         model = Region
@@ -357,8 +356,11 @@ class LocationDetailSerializer(serializers.ModelSerializer):
     district_code = serializers.CharField(source='district.code', read_only=True, allow_null=True)
     created_by_name = serializers.CharField(source='created_by.get_full_name', read_only=True)
     updated_by_name = serializers.CharField(source='updated_by.get_full_name', read_only=True)
-    mahallas = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
+    mahallas = serializers.SerializerMethodField()
     points = LocationPointSerializer(many=True, read_only=True)
+
+    def get_mahallas(self, obj):
+        return [{'id': m.pk, 'name': m.name} for m in obj.mahallas.all()]
 
     class Meta:
         model = Location

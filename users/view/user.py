@@ -10,9 +10,26 @@ from rest_framework.views import APIView
 from restapp.pagination import ResultsSetPagination
 from restapp.utils.responses import nonContent
 from users.filterset import UserFilter
-from users.models import User
+from users.models import User, RoleName
 from users.serializers import UserSerializer, ChangePasswordSerializer, UserListPublicIdSerializer, UserListSerializer
 from users.utils.permissions import IsOrgAdmin
+
+# Yuqoridan pastga: indeks qancha kichik — rol shuncha yuqori
+_ROLE_HIERARCHY = [
+    RoleName.SUPER_ADMIN,
+    RoleName.DISTRICT_ADMIN,
+    RoleName.COLLECTOR,
+    RoleName.OFFICER,
+]
+
+
+def _visible_roles(user) -> list[str]:
+    """Foydalanuvchi ko'ra oladigan rollar (o'zi va pastdagilar)."""
+    user_roles = set(user.roles.values_list('name', flat=True))
+    for i, role in enumerate(_ROLE_HIERARCHY):
+        if role in user_roles:
+            return _ROLE_HIERARCHY[i:]
+    return [RoleName.OFFICER]
 
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework_simplejwt.views import TokenObtainPairView
@@ -96,16 +113,19 @@ class UserView(ListCreateAPIView):
     ordering = ['-pk']
 
     def get_queryset(self):
+        user = self.request.user
         queryset = User.objects.select_related(
             'organization__region', 'organization__district', 'region', 'district'
         ).prefetch_related('roles').all()
 
-        # Superadmin barcha userlarni ko'radi
-        if self.request.user.is_superuser:
+        if user.is_super_admin():
             return queryset
 
-        # Oddiy user faqat o'z organizatsiyasi userlarini ko'radi
-        return queryset.filter(organization=self.request.user.organization)
+        allowed_roles = _visible_roles(user)
+        return queryset.filter(
+            organization=user.organization,
+            roles__name__in=allowed_roles,
+        ).distinct()
 
     def post(self, request):
         serializer = self.serializer_class(data=request.data)
@@ -127,12 +147,17 @@ class UserDetailView(RetrieveUpdateDestroyAPIView):
     permission_classes = [IsOrgAdmin]
 
     def get_queryset(self):
-        queryset = User.objects.all()
+        user = self.request.user
+        queryset = User.objects.prefetch_related('roles').all()
 
-        if self.request.user.is_superuser:
+        if user.is_super_admin():
             return queryset
 
-        return queryset.filter(organization=self.request.user.organization)
+        allowed_roles = _visible_roles(user)
+        return queryset.filter(
+            organization=user.organization,
+            roles__name__in=allowed_roles,
+        ).distinct()
 
     def perform_update(self, serializer):
         serializer.save(updated_by=self.request.user)

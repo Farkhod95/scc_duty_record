@@ -63,6 +63,18 @@ class DutyDayListCreateView(APIView):
         if status_param:
             qs = qs.filter(status=status_param)
 
+        org_param = request.query_params.get('organization')
+        if org_param and request.user.is_super_admin():
+            qs = qs.filter(organization_id=org_param)
+
+        view_type = request.query_params.get('type')
+        if view_type:
+            today = timezone.localdate()
+            if view_type == 'archive':
+                qs = qs.filter(duty_date__lt=today)
+            elif view_type == 'new':
+                qs = qs.filter(duty_date__gte=today)
+
         return Response(DutyDayListSerializer(qs, many=True).data)
 
     def post(self, request):
