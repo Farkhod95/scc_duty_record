@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     'monitoring.apps.MonitoringConfig',
     'restapp',
     'fleet',
+    'tablet',
 ]
 
 MIDDLEWARE = [
@@ -270,3 +271,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # Bo'sh qoldirilsa yuborilmaydi.
 EXTERNAL_DUTY_SYNC_URL = env('EXTERNAL_DUTY_SYNC_URL', default='')
 EXTERNAL_SYNC_TOKEN = env('EXTERNAL_SYNC_TOKEN', default='')
+
+# Planshet RSA-OAEP autentifikatsiyasi
+# Kalit juftini yaratish: python manage.py generate_tablet_keys
+TABLET_RSA_PRIVATE_KEY = env('TABLET_RSA_PRIVATE_KEY', default='').replace('\\n', '\n')
