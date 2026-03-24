@@ -94,7 +94,7 @@ class RelatedDistrictSerializer(serializers.ModelSerializer):
 
 class RelatedPositionSerializer(serializers.ModelSerializer):
     class Meta:
-        model = Region
+        model = Position
         fields = ('id', 'name')
 
 

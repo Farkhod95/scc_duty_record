@@ -59,7 +59,9 @@ class LocationDetailView(RetrieveUpdateDestroyAPIView):
         serializer.save(updated_by=self.request.user)
 
     def get(self, request, pk):
-        instance = get_object_or_404(Location, id=pk)
+        instance = get_object_or_404(
+            Location.objects.prefetch_related('mahallas', 'points'), id=pk
+        )
         serializer = LocationDetailSerializer(instance)
         return Response(serializer.data, status=status.HTTP_200_OK)
 

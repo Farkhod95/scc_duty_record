@@ -50,6 +50,7 @@ class EventListCreateView(APIView):
     permission_classes = [IsOfficer]
 
     def get(self, request):
+        from django.utils import timezone
         qs = _event_qs(request.user).order_by('-event_date')
 
         date = request.query_params.get('date')
@@ -59,6 +60,18 @@ class EventListCreateView(APIView):
         status_param = request.query_params.get('status')
         if status_param:
             qs = qs.filter(status=status_param)
+
+        org_param = request.query_params.get('organization')
+        if org_param and request.user.is_super_admin():
+            qs = qs.filter(organization_id=org_param)
+
+        view_type = request.query_params.get('type')
+        if view_type:
+            today = timezone.localdate()
+            if view_type == 'archive':
+                qs = qs.filter(event_date__lt=today)
+            elif view_type == 'new':
+                qs = qs.filter(event_date__gte=today)
 
         return Response(EventListSerializer(qs, many=True).data)
 
