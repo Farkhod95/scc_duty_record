@@ -5,6 +5,45 @@ from monitoring.models import DutySection
 from tablet.models import DutyCheckIn
 
 
+class TabletMeSerializer(serializers.Serializer):
+    username = serializers.CharField()
+    last_name = serializers.CharField()
+    first_name = serializers.CharField()
+    second_name = serializers.CharField(allow_null=True)
+    full_name = serializers.SerializerMethodField()
+    phone_number = serializers.CharField()
+    pinfl = serializers.CharField(allow_null=True)
+    gender = serializers.CharField(allow_null=True)
+    date_of_birthday = serializers.DateField(allow_null=True)
+    avatar = serializers.SerializerMethodField()
+    special_rank = serializers.CharField(source='special_rank.name', allow_null=True)
+    organization = serializers.SerializerMethodField()
+    position = serializers.CharField(source='position.name', allow_null=True)
+    department = serializers.CharField(source='department.name', allow_null=True)
+
+    def get_full_name(self, obj):
+        return ' '.join(p for p in [obj.last_name, obj.first_name, obj.second_name] if p)
+
+    def get_avatar(self, obj):
+        if not obj.avatar:
+            return None
+        request = self.context.get('request')
+        return request.build_absolute_uri(obj.avatar.url) if request else obj.avatar.url
+
+    def get_organization(self, obj):
+        org = obj.organization
+        if not org:
+            return None
+        return {
+            'name': org.name,
+            'code': org.code,
+            'stages_count': org.stages_count,
+            'region': org.region.name if org.region else None,
+            'district': org.district.name if org.district else None,
+        }
+
+
+
 class TabletLocationSerializer(serializers.Serializer):
     """Mavjud location + mahallalar."""
     id = serializers.IntegerField()

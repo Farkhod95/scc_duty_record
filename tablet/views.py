@@ -7,7 +7,22 @@ from rest_framework.views import APIView
 
 from monitoring.models import DutySection
 from tablet.models import DutyCheckIn
-from tablet.serializers import TabletSectionSerializer, DutyCheckInSerializer, TodaySectionSerializer
+from tablet.serializers import TabletSectionSerializer, DutyCheckInSerializer, TodaySectionSerializer, TabletMeSerializer
+
+
+class TabletMeView(APIView):
+    """GET /api/v1/me/ — Kirgan foydalanuvchining o'z ma'lumotlari."""
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        user = request.user.__class__.objects.select_related(
+            'organization__region',
+            'organization__district',
+            'position',
+            'department',
+            'special_rank',
+        ).get(pk=request.user.pk)
+        return Response(TabletMeSerializer(user, context={'request': request}).data)
 
 
 class TabletMyDutyView(APIView):
