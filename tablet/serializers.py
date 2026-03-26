@@ -45,13 +45,21 @@ class TabletMeSerializer(serializers.Serializer):
 
 
 class TabletLocationSerializer(serializers.Serializer):
-    """Mavjud location + mahallalar."""
+    """Mavjud location + mahallalar + points."""
     id = serializers.IntegerField()
     title = serializers.CharField()
+    boundary_data = serializers.JSONField()
     mahallas = serializers.SerializerMethodField()
+    points = serializers.SerializerMethodField()
 
     def get_mahallas(self, obj):
-        return [{'id': m.pk, 'name': m.name} for m in obj.mahallas.all()]
+        return [
+            {'id': m.pk, 'name': m.name, 'boundary_data': m.boundary_data}
+            for m in obj.mahallas.all()
+        ]
+
+    def get_points(self, obj):
+        return TodayLocationPointSerializer(obj.points.all(), many=True).data
 
 
 class TabletAssignmentSerializer(serializers.Serializer):

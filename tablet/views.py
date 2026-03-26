@@ -44,8 +44,9 @@ class TabletMyDutyView(APIView):
             'duty_day__organization',
         ).prefetch_related(
             'assignments__employees',
-            'assignments__location__mahallas',
             'assignments__transports',
+            'assignments__location__mahallas',
+            'assignments__location__points',
             'checkins',
         ).distinct()
 
