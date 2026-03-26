@@ -66,11 +66,11 @@ urlpatterns = [
     path('duty-days/<int:pk>', DutyDayDetailView.as_view(), name='duty_day_detail'),
 
     # DutySection
-    path('duty-sections/<int:pk>', DutySectionDetailView.as_view(), name='duty_section_detail'),
+    path('duty-sections/<int:pk>/', DutySectionDetailView.as_view(), name='duty_section_detail'),
 
     # DutySectionAssignment
     path('duty-sections/<int:section_id>/assignments/', DutySectionAssignmentListCreateView.as_view(), name='duty_section_assignment_list'),
-    path('duty-section-assignments/<int:pk>', DutySectionAssignmentDetailView.as_view(), name='duty_section_assignment_detail'),
+    path('duty-section-assignments/<int:pk>/', DutySectionAssignmentDetailView.as_view(), name='duty_section_assignment_detail'),
 
     # ── Etap 4: Tasdiqlash zanjiri ──────────────────────────────────────────
     path('duty-days/<int:pk>/submit/', DutyDaySubmitView.as_view(), name='duty_day_submit'),

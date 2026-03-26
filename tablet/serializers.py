@@ -65,7 +65,10 @@ class TabletAssignmentSerializer(serializers.Serializer):
         return [{'id': e.pk, 'name': str(e)} for e in obj.employees.all()]
 
     def get_transports(self, obj):
-        return [{'id': t.pk, 'name': str(t)} for t in obj.transports.all()]
+        return [
+            {'id': t.pk, 'model': t.model, 'number': t.number}
+            for t in obj.transports.all()
+        ]
 
 
 class TabletCheckInSerializer(serializers.Serializer):
@@ -161,7 +164,10 @@ class TodayAssignmentSerializer(serializers.Serializer):
         return [{'id': e.pk, 'name': str(e)} for e in obj.employees.all()]
 
     def get_transports(self, obj):
-        return [{'id': t.pk, 'name': str(t)} for t in obj.transports.all()]
+        return [
+            {'id': t.pk, 'model': t.model, 'number': t.number}
+            for t in obj.transports.all()
+        ]
 
 
 class TodaySectionSerializer(serializers.ModelSerializer):

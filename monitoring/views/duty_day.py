@@ -376,6 +376,21 @@ class DistrictDutyView(APIView):
             duty_days = base_duty_qs.filter(duty_date__gte=today)
             events = base_event_qs.filter(event_date__gte=today)
 
+        if not request.user.is_super_admin():
+            if request.user.is_collector():
+                allowed_statuses = [
+                    DutyDayStatus.SUBMITTED,
+                    DutyDayStatus.COLLECTED,
+                    DutyDayStatus.APPROVED,
+                ]
+            else:  # district_admin
+                allowed_statuses = [
+                    DutyDayStatus.COLLECTED,
+                    DutyDayStatus.APPROVED,
+                ]
+            duty_days = duty_days.filter(status__in=allowed_statuses)
+            events = events.filter(status__in=allowed_statuses)
+
         return Response({
             'duty_days': DutyDayDetailSerializer(duty_days, many=True).data,
             'events': EventDetailSerializer(events, many=True).data,
@@ -390,6 +405,17 @@ class DistrictDutyDetailView(APIView):
             qs = DutyDay.objects.all()
         else:
             qs = DutyDay.objects.filter(organization__district=request.user.district)
+            if request.user.is_collector():
+                qs = qs.filter(status__in=[
+                    DutyDayStatus.SUBMITTED,
+                    DutyDayStatus.COLLECTED,
+                    DutyDayStatus.APPROVED,
+                ])
+            else:  # district_admin
+                qs = qs.filter(status__in=[
+                    DutyDayStatus.COLLECTED,
+                    DutyDayStatus.APPROVED,
+                ])
 
         duty_day = get_object_or_404(
             qs.select_related(
