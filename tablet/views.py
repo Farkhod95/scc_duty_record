@@ -1,3 +1,8 @@
+import json
+import logging
+import urllib.request
+
+from django.conf import settings
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.generics import get_object_or_404
@@ -8,6 +13,8 @@ from rest_framework.views import APIView
 from monitoring.models import DutySection
 from tablet.models import DutyCheckIn
 from tablet.serializers import TabletSectionSerializer, DutyCheckInSerializer, TodaySectionSerializer, TabletMeSerializer
+
+logger = logging.getLogger(__name__)
 
 
 class TabletMeView(APIView):
@@ -135,3 +142,48 @@ class TabletDutyEndView(APIView):
         checkin.check_out_time = timezone.now()
         checkin.save(update_fields=['check_out_time'])
         return Response(DutyCheckInSerializer(checkin).data)
+
+
+class TabletLocationView(APIView):
+    """
+    POST /api/v1/location/
+    Planshet joylashuvini qabul qilib mikroservicega yuboradi.
+
+    Body: {"latitude": 41.3111, "longitude": 69.2797, "accuracy": 5.0, "timestamp": 1711350000000}
+    """
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        latitude = request.data.get('latitude')
+        longitude = request.data.get('longitude')
+        if latitude is None or longitude is None:
+            return Response({'detail': 'latitude va longitude majburiy.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        payload = {
+            'pinfl': request.user.pinfl,
+            'latitude': latitude,
+            'longitude': longitude,
+            'accuracy': request.data.get('accuracy'),
+            'timestamp': request.data.get('timestamp'),
+        }
+
+        self._forward(payload)
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+    def _forward(self, payload):
+        url = settings.LOCATION_MICROSERVICE_URL
+        if not url:
+            logger.warning("TabletLocationView: LOCATION_MICROSERVICE_URL is not set, skipping forward")
+            return
+        body = json.dumps(payload).encode('utf-8')
+        req = urllib.request.Request(
+            url,
+            data=body,
+            headers={'Content-Type': 'application/json'},
+            method='POST',
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=5) as resp:
+                logger.debug(f"TabletLocationView: forwarded, status={resp.status}")
+        except Exception as exc:
+            logger.warning(f"TabletLocationView: microservice forward failed: {exc}")
