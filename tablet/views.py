@@ -11,6 +11,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from monitoring.models import DutySection
+from monitoring.services.microservice import send_section_started, send_section_ended
 from tablet.models import DutyCheckIn
 from tablet.serializers import TabletSectionSerializer, DutyCheckInSerializer, TodaySectionSerializer, TabletMeSerializer
 
@@ -124,6 +125,7 @@ class TabletDutyStartView(APIView):
             checkin.check_in_time = timezone.now()
             checkin.save(update_fields=['check_in_time'])
 
+        send_section_started(section)
         return Response(DutyCheckInSerializer(checkin).data, status=status.HTTP_201_CREATED if created else status.HTTP_200_OK)
 
 
@@ -141,6 +143,7 @@ class TabletDutyEndView(APIView):
         )
         checkin.check_out_time = timezone.now()
         checkin.save(update_fields=['check_out_time'])
+        send_section_ended(checkin.duty_section)
         return Response(DutyCheckInSerializer(checkin).data)
 
 
@@ -159,8 +162,16 @@ class TabletLocationView(APIView):
         if latitude is None or longitude is None:
             return Response({'detail': 'latitude va longitude majburiy.'}, status=status.HTTP_400_BAD_REQUEST)
 
+        active_checkin = DutyCheckIn.objects.filter(
+            employee=request.user,
+            check_in_time__isnull=False,
+            check_out_time__isnull=True,
+        ).values('duty_section_id').first()
+
         payload = {
-            'pinfl': request.user.pinfl,
+            'event': 'location.update',
+            'pinfl_hash': request.user.pinfl_hash,
+            'section_id': active_checkin['duty_section_id'] if active_checkin else None,
             'latitude': latitude,
             'longitude': longitude,
             'accuracy': request.data.get('accuracy'),

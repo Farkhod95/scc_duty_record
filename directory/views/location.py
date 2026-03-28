@@ -8,6 +8,7 @@ from rest_framework.views import APIView
 from directory.models import Location, LocationPoint
 from directory.serializers import LocationSerializer, LocationListSerializer, LocationDetailSerializer, LocationPointSerializer
 from directory.filterset import LocationFilter
+from monitoring.services.microservice import send_location_sync, send_point_sync
 from restapp.pagination import ResultsSetPagination
 from restapp.utils.responses import nonContent
 
@@ -40,12 +41,20 @@ class LocationView(ListCreateAPIView):
     ordering = ['title']
 
     def get_queryset(self):
-        return Location.objects.select_related('region', 'district').prefetch_related('mahallas').all()
+        return Location.objects.select_related(
+            'organization', 'region', 'district'
+        ).prefetch_related('mahallas').filter(
+            organization=self.request.user.organization
+        )
 
     def post(self, request):
         serializer = LocationSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        serializer.save(created_by=self.request.user)
+        instance = serializer.save(
+            created_by=request.user,
+            organization=request.user.organization,
+        )
+        send_location_sync(instance)
         return Response(serializer.data, status.HTTP_201_CREATED)
 
 
@@ -53,7 +62,11 @@ class LocationDetailView(RetrieveUpdateDestroyAPIView):
     serializer_class = LocationSerializer
 
     def get_queryset(self):
-        return Location.objects.select_related('region', 'district').prefetch_related('mahallas', 'points').all()
+        return Location.objects.select_related(
+            'organization', 'region', 'district'
+        ).prefetch_related('mahallas', 'points').filter(
+            organization=self.request.user.organization
+        )
 
     def perform_update(self, serializer):
         serializer.save(updated_by=self.request.user)
@@ -69,7 +82,8 @@ class LocationDetailView(RetrieveUpdateDestroyAPIView):
         instance = get_object_or_404(Location, id=pk)
         serializer = self.serializer_class(instance, data=request.data)
         serializer.is_valid(raise_exception=True)
-        serializer.save(updated_by=self.request.user)
+        updated = serializer.save(updated_by=self.request.user)
+        send_location_sync(updated)
         return Response(serializer.data, status.HTTP_202_ACCEPTED)
 
     def delete(self, request, pk):
@@ -91,7 +105,8 @@ class LocationPointView(APIView):
         location = get_object_or_404(Location, id=location_pk)
         serializer = LocationPointSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        serializer.save(location=location)
+        point = serializer.save(location=location)
+        send_point_sync(point)
         return Response(serializer.data, status.HTTP_201_CREATED)
 
 
@@ -106,7 +121,8 @@ class LocationPointDetailView(APIView):
         point = get_object_or_404(LocationPoint, id=pk, location_id=location_pk)
         serializer = LocationPointSerializer(point, data=request.data)
         serializer.is_valid(raise_exception=True)
-        serializer.save()
+        updated_point = serializer.save()
+        send_point_sync(updated_point)
         return Response(serializer.data, status.HTTP_202_ACCEPTED)
 
     def delete(self, request, location_pk, pk):

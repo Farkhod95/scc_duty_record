@@ -318,10 +318,10 @@ class LocationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Location
         fields = [
-            'id', 'region', 'district', 'title', 'boundary_data', 'mahallas',
+            'id', 'organization', 'region', 'district', 'title', 'boundary_data', 'mahallas',
             'created_time', 'updated_time', 'created_by', 'updated_by'
         ]
-        read_only_fields = ['id', 'created_time', 'updated_time', 'created_by', 'updated_by']
+        read_only_fields = ['id', 'organization', 'created_time', 'updated_time', 'created_by', 'updated_by']
 
     def validate_boundary_data(self, value):
         if value and not isinstance(value, dict):
@@ -330,6 +330,7 @@ class LocationSerializer(serializers.ModelSerializer):
 
 
 class LocationListSerializer(serializers.ModelSerializer):
+    organization_name = serializers.CharField(source='organization.name', read_only=True, allow_null=True)
     region_name = serializers.CharField(source='region.name', read_only=True, allow_null=True)
     district_name = serializers.CharField(source='district.name', read_only=True, allow_null=True)
     has_boundary = serializers.SerializerMethodField()
@@ -338,7 +339,8 @@ class LocationListSerializer(serializers.ModelSerializer):
     class Meta:
         model = Location
         fields = [
-            'id', 'region', 'region_name', 'district', 'district_name',
+            'id', 'organization', 'organization_name',
+            'region', 'region_name', 'district', 'district_name',
             'title', 'has_boundary', 'mahallas_count', 'created_time'
         ]
 
@@ -350,6 +352,7 @@ class LocationListSerializer(serializers.ModelSerializer):
 
 
 class LocationDetailSerializer(serializers.ModelSerializer):
+    organization_name = serializers.CharField(source='organization.name', read_only=True, allow_null=True)
     region_name = serializers.CharField(source='region.name', read_only=True, allow_null=True)
     region_code = serializers.CharField(source='region.code', read_only=True, allow_null=True)
     district_name = serializers.CharField(source='district.name', read_only=True, allow_null=True)
@@ -365,7 +368,8 @@ class LocationDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = Location
         fields = [
-            'id', 'region', 'region_name', 'region_code',
+            'id', 'organization', 'organization_name',
+            'region', 'region_name', 'region_code',
             'district', 'district_name', 'district_code',
             'title', 'boundary_data', 'mahallas', 'points',
             'created_time', 'updated_time',

@@ -104,6 +104,7 @@ class LocationFilter(FilterSet):
     class Meta:
         model = Location
         fields = {
+            'organization': ['exact'],
             'region': ['exact'],
             'district': ['exact'],
             'title': ['exact', 'icontains'],

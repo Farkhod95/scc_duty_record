@@ -270,8 +270,15 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # Duty approve bo'lganda shu URL ga POST yuboriladi.
 # Bo'sh qoldirilsa yuborilmaydi.
 EXTERNAL_DUTY_SYNC_URL = env('EXTERNAL_DUTY_SYNC_URL', default='')
-LOCATION_MICROSERVICE_URL = env('LOCATION_MICROSERVICE_URL', default='')
 EXTERNAL_SYNC_TOKEN = env('EXTERNAL_SYNC_TOKEN', default='')
+
+# Monitoring mikroservisi (Docker network ichida)
+MICROSERVICE_LOCATION_SYNC_URL   = env('MICROSERVICE_LOCATION_SYNC_URL', default='')
+MICROSERVICE_POINT_SYNC_URL      = env('MICROSERVICE_POINT_SYNC_URL', default='')
+MICROSERVICE_SECTION_STARTED_URL = env('MICROSERVICE_SECTION_STARTED_URL', default='')
+MICROSERVICE_SECTION_ENDED_URL   = env('MICROSERVICE_SECTION_ENDED_URL', default='')
+# Planshet GPS → mikroservis (location.update eventi)
+LOCATION_MICROSERVICE_URL        = env('LOCATION_MICROSERVICE_URL', default='')
 
 # Planshet RSA-OAEP autentifikatsiyasi
 # Kalit juftini yaratish: python manage.py generate_tablet_keys

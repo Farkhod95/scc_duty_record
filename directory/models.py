@@ -182,8 +182,12 @@ class Position(BaseModel):
 
 
 class Location(BaseModel):
-    region = models.ForeignKey(Region, related_name='locations', on_delete=models.SET_NULL, null=True, blank=True)
-    district = models.ForeignKey(District, related_name='locations', on_delete=models.SET_NULL, null=True, blank=True)
+    organization = models.ForeignKey(
+        Organization, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='locations', help_text=_("Qaysi tashkilotga tegishli")
+    )
+    region = models.ForeignKey(Region, related_name='region_locations', on_delete=models.SET_NULL, null=True, blank=True)
+    district = models.ForeignKey(District, related_name='district_locations', on_delete=models.SET_NULL, null=True, blank=True)
     title = models.CharField(_('Title'), max_length=255, help_text=_("Location nomi"))
     boundary_data = models.JSONField(null=True, blank=True)
     mahallas = models.ManyToManyField(
