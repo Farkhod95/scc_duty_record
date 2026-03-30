@@ -279,6 +279,8 @@ MICROSERVICE_SECTION_STARTED_URL = env('MICROSERVICE_SECTION_STARTED_URL', defau
 MICROSERVICE_SECTION_ENDED_URL   = env('MICROSERVICE_SECTION_ENDED_URL', default='')
 # Planshet GPS → mikroservis (location.update eventi)
 LOCATION_MICROSERVICE_URL        = env('LOCATION_MICROSERVICE_URL', default='')
+# Planshet GPS yuborish intervali (soniya), default 30s
+TABLET_LOCATION_INTERVAL         = env.int('TABLET_LOCATION_INTERVAL', default=30)
 
 # Planshet RSA-OAEP autentifikatsiyasi
 # Kalit juftini yaratish: python manage.py generate_tablet_keys

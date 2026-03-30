@@ -1,7 +1,7 @@
 from django.urls import path
 from tablet.views import (
     TabletMyDutyView, TabletDutyStartView, TabletDutyEndView,
-    TabletTodayDutyView, TabletMeView, TabletLocationView,
+    TabletTodayDutyView, TabletMeView, TabletLocationView, TabletConfigView,
 )
 from tablet.auth import TabletAuthView
 
@@ -13,4 +13,5 @@ urlpatterns = [
     path('duty/<int:section_id>/start/', TabletDutyStartView.as_view(), name='tablet_duty_start'),
     path('duty/<int:section_id>/end/', TabletDutyEndView.as_view(), name='tablet_duty_end'),
     path('location/', TabletLocationView.as_view(), name='tablet_location'),
+    path('config/', TabletConfigView.as_view(), name='tablet_config'),
 ]

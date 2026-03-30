@@ -147,6 +147,24 @@ class TabletDutyEndView(APIView):
         return Response(DutyCheckInSerializer(checkin).data)
 
 
+class TabletConfigView(APIView):
+    """
+    GET /api/v1/config/
+    Planshet ilovasi uchun sozlamalar.
+
+    Response:
+    {
+        "location_interval": 30   // GPS yuborish intervali (soniya)
+    }
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        return Response({
+            'location_interval': settings.TABLET_LOCATION_INTERVAL,
+        })
+
+
 class TabletLocationView(APIView):
     """
     POST /api/v1/location/
