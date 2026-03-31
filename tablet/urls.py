@@ -12,6 +12,6 @@ urlpatterns = [
     path('duty/today/', TabletTodayDutyView.as_view(), name='tablet_today_duty'),
     path('duty/<int:section_id>/start/', TabletDutyStartView.as_view(), name='tablet_duty_start'),
     path('duty/<int:section_id>/end/', TabletDutyEndView.as_view(), name='tablet_duty_end'),
-    path('location/', TabletLocationView.as_view(), name='tablet_location'),
-    path('config/', TabletConfigView.as_view(), name='tablet_config'),
+    path('tablet/location/', TabletLocationView.as_view(), name='tablet_location'),
+    path('tablet/config/', TabletConfigView.as_view(), name='tablet_config'),
 ]
