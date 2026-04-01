@@ -70,7 +70,7 @@ class TabletAssignmentSerializer(serializers.Serializer):
     note = serializers.CharField(allow_null=True)
 
     def get_employees(self, obj):
-        return [{'id': e.pk, 'name': str(e)} for e in obj.employees.all()]
+        return [{'id': e.pk, 'name': str(e), 'pinfl': e.pinfl} for e in obj.employees.all()]
 
     def get_transports(self, obj):
         return [
@@ -169,7 +169,7 @@ class TodayAssignmentSerializer(serializers.Serializer):
     note = serializers.CharField(allow_null=True)
 
     def get_employees(self, obj):
-        return [{'id': e.pk, 'name': str(e)} for e in obj.employees.all()]
+        return [{'id': e.pk, 'name': str(e), 'pinfl': e.pinfl} for e in obj.employees.all()]
 
     def get_transports(self, obj):
         return [
