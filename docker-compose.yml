@@ -6,6 +6,7 @@ services:
     build: .
     container_name: duty_record_web
     restart: always
+    network_mode: host
     volumes:
       - .:/app
       - static_volume:/app/staticfiles

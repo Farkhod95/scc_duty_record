@@ -307,7 +307,14 @@ class MapTileProxyView(APIView):
 
         url = self.TILE_URL.format(z=z, x=x, y=y)
         try:
-            with urllib.request.urlopen(url, timeout=15) as resp:
+            req = urllib.request.Request(url, headers={
+                'User-Agent': 'Mozilla/5.0 (compatible; TileProxy/1.0)',
+                'Referer': 'https://tosh.safecity.uz/',
+                'Accept': 'image/png,image/*,*/*',
+                'Accept-Language': 'uz,ru;q=0.9,en;q=0.8',
+                'Connection': 'keep-alive',
+            })
+            with urllib.request.urlopen(req, timeout=15) as resp:
                 data = resp.read()
         except Exception:
             return HttpResponse(status=502)
