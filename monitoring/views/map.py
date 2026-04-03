@@ -291,7 +291,8 @@ class MapTileProxyView(APIView):
     GET /api/v1/map/tiles/<z>/<x>/<y>.png
     safecity.uz tile serverini proxy qiladi.
     """
-    permission_classes = [IsAuthenticated]
+    permission_classes = []
+    authentication_classes = []
 
     TILE_URL = 'https://tosh.safecity.uz/map/main/{z}/{x}/{y}.png'
 
