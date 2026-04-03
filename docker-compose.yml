@@ -99,5 +99,7 @@ services:
 
 volumes:
   postgres_data:
+    external: true
+    name: jts-scc_postgres_data
   static_volume:
   locationservice_postgres_data:
