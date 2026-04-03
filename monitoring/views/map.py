@@ -182,6 +182,10 @@ class MapLiveView(APIView):
         for section in sections:
             # gRPC DutyInfo — shu section dagi joriy GPS holatlar
             duty_info = grpc_location.duty_info(section.pk)
+            if duty_info is None:
+                # Mikroservicda duty yo'q — ro'yxatdan o'tkazamiz
+                grpc_location.duty_create(section)
+                duty_info = grpc_location.duty_info(section.pk)
 
             # pinfl_hash → gRPC EmployeeInfo lug'ati
             emp_gps = {}
