@@ -289,23 +289,31 @@ class MapLiveView(APIView):
 class MapTileProxyView(APIView):
     """
     GET /api/v1/map/tiles/<z>/<x>/<y>.png
-    safecity.uz tile serverini proxy qiladi.
+    safecity.uz tile serverini proxy qiladi. Tillar Redis'da 24 soat cache qilinadi.
     """
     permission_classes = []
     authentication_classes = []
 
     TILE_URL = 'https://tosh.safecity.uz/map/main/{z}/{x}/{y}.png'
+    CACHE_TTL = 60 * 60 * 24  # 24 soat
 
     def get(self, request, z, x, y):
+        from django.core.cache import cache
+
+        cache_key = f'tile:{z}:{x}:{y}'
+        cached = cache.get(cache_key)
+        if cached:
+            return HttpResponse(cached, content_type='image/png')
+
         url = self.TILE_URL.format(z=z, x=x, y=y)
         try:
-            with urllib.request.urlopen(url, timeout=10) as resp:
-                return HttpResponse(
-                    resp.read(),
-                    content_type=resp.headers.get('Content-Type', 'image/png'),
-                )
+            with urllib.request.urlopen(url, timeout=15) as resp:
+                data = resp.read()
         except Exception:
             return HttpResponse(status=502)
+
+        cache.set(cache_key, data, self.CACHE_TTL)
+        return HttpResponse(data, content_type='image/png')
 
 
 # ── 4. MapZonesView ─────────────────────────────────────────────
