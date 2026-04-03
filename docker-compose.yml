@@ -6,8 +6,6 @@ services:
     build: .
     container_name: duty_record_web
     restart: always
-    ports:
-      - "8080:8000"
     volumes:
       - .:/app
       - static_volume:/app/staticfiles
@@ -17,6 +15,15 @@ services:
       - db
 #    entrypoint: ["./wait-for-it.sh", "db:5432", "--"]
     command: ["daphne", "-b", "0.0.0.0", "-p", "8000", "main.asgi:application"]
+
+  frontend:
+    build: ./jts-scc
+    container_name: duty_record_frontend
+    restart: always
+    ports:
+      - "8080:80"
+    depends_on:
+      - duty_record
 
   db:
     image: postgis/postgis:15-3.3
