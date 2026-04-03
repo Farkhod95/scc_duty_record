@@ -259,7 +259,7 @@ LOCALE_PATHS = (
 )
 
 # media fayllar (upload qilingan rasm, fayl, video)
-MEDIA_URL = '/assets/'
+MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 
 # Default primary key field type
