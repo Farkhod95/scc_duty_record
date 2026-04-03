@@ -20,7 +20,6 @@ ENV TZ=Asia/Tashkent
 WORKDIR /app
 
 COPY --from=builder /app/location-service .
-COPY --from=builder /app/migrations ./migrations
 
 EXPOSE 50051
 
