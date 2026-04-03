@@ -165,6 +165,7 @@ func (h *LocationHandler) DutyInfo(ctx context.Context, req *proto.DutyInfoReque
 		}
 		return nil, status.Errorf(codes.Internal, "duty info: %v", err)
 	}
+    fmt.printf("DutyInfo response: %+v", resp)
 	return resp, nil
 }
 
