@@ -1,8 +1,5 @@
-import json
 import logging
-import urllib.request
 
-from django.conf import settings
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.generics import get_object_or_404
@@ -180,39 +177,15 @@ class TabletLocationView(APIView):
         if latitude is None or longitude is None:
             return Response({'detail': 'latitude va longitude majburiy.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        active_checkin = DutyCheckIn.objects.filter(
-            employee=request.user,
-            check_in_time__isnull=False,
-            check_out_time__isnull=True,
-        ).values('duty_section_id').first()
+        if not request.user.pinfl_hash:
+            return Response({'detail': 'Foydalanuvchi pinfl_hash si yo\'q.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        payload = {
-            'event': 'location.update',
-            'pinfl_hash': request.user.pinfl_hash,
-            'section_id': active_checkin['duty_section_id'] if active_checkin else None,
-            'latitude': latitude,
-            'longitude': longitude,
-            'accuracy': request.data.get('accuracy'),
-            'timestamp': request.data.get('timestamp'),
-        }
-
-        self._forward(payload)
-        return Response(status=status.HTTP_204_NO_CONTENT)
-
-    def _forward(self, payload):
-        url = settings.LOCATION_MICROSERVICE_URL
-        if not url:
-            logger.warning("TabletLocationView: LOCATION_MICROSERVICE_URL is not set, skipping forward")
-            return
-        body = json.dumps(payload).encode('utf-8')
-        req = urllib.request.Request(
-            url,
-            data=body,
-            headers={'Content-Type': 'application/json'},
-            method='POST',
+        from monitoring.services.grpc_client import grpc_location
+        grpc_location.send_location(
+            pinfl_hash=request.user.pinfl_hash,
+            latitude=float(latitude),
+            longitude=float(longitude),
+            accuracy=float(request.data.get('accuracy') or 0),
+            timestamp=int(request.data.get('timestamp') or 0),
         )
-        try:
-            with urllib.request.urlopen(req, timeout=5) as resp:
-                logger.debug(f"TabletLocationView: forwarded, status={resp.status}")
-        except Exception as exc:
-            logger.warning(f"TabletLocationView: microservice forward failed: {exc}")
+        return Response(status=status.HTTP_204_NO_CONTENT)

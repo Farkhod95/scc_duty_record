@@ -282,6 +282,9 @@ LOCATION_MICROSERVICE_URL        = env('LOCATION_MICROSERVICE_URL', default='')
 # Planshet GPS yuborish intervali (soniya), default 30s
 TABLET_LOCATION_INTERVAL         = env.int('TABLET_LOCATION_INTERVAL', default=30)
 
+# LocationService gRPC (Go mikroservis)
+GRPC_LOCATION_SERVICE_ADDR = env('GRPC_LOCATION_SERVICE_ADDR', default='192.168.168.18:50051')
+
 # Planshet RSA-OAEP autentifikatsiyasi
 # Kalit juftini yaratish: python manage.py generate_tablet_keys
 TABLET_RSA_PRIVATE_KEY = env('TABLET_RSA_PRIVATE_KEY', default='').replace('\\n', '\n')

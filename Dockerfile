@@ -13,6 +13,13 @@ RUN pip install --upgrade pip && pip install -r requirements.txt
 
 COPY . /app/
 
+# Proto fayllardan Python stub larini generatsiya qilish
+RUN python -m grpc_tools.protoc \
+    -I ./proto \
+    --python_out=./proto \
+    --grpc_python_out=./proto \
+    ./proto/location_service.proto
+
 EXPOSE 8000
 
 CMD ["daphne", "-b", "0.0.0.0", "-p", "8000", "main.asgi:application"]

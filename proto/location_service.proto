@@ -1,0 +1,181 @@
+syntax = "proto3";
+
+package LocationService;
+
+option go_package = "LocationService/proto;proto";
+
+service LocationService {
+  rpc PaligonCreate (PaligonRequest)       returns (PaligonResponse);
+  rpc PaligonDelete (PaligonDeleteRequest) returns (Empty);
+  rpc PaligonList   (PaligonFilterRequest) returns (PaligonListResponse);
+
+  rpc PointCreate (PointRequest)       returns (PointResponse);
+  rpc PointDelete (PointDeleteRequest) returns (Empty);
+  rpc PointList   (PointListRequest)   returns (PointListResponse);
+
+  rpc DutyCreate (DutyRequest)     returns (DutyResponse);
+  rpc DutyStop   (StopDutyRequest) returns (Empty);
+  rpc DutyList   (DutyListRequest) returns (DutyListResponse);
+  rpc DutyInfo   (DutyInfoRequest) returns (DutyInfoResponse);
+
+  rpc Location    (LocationRequest) returns (Empty);
+  rpc AlarmStream (AlarmRequest)    returns (stream AlarmEvent);
+}
+
+message Empty {}
+
+message Coordinate {
+  double longitude = 1;
+  double latitude  = 2;
+}
+
+message PaligonRequest {
+  int32               id            = 1;
+  int32               region_id     = 2;
+  int32               district_id   = 3;
+  int32               org_id        = 4;
+  repeated Coordinate boundary_data = 5;
+}
+
+message PaligonResponse {
+  int32 id = 1;
+}
+
+message PaligonDeleteRequest {
+  int32 id = 1;
+}
+
+message PaligonFilterRequest {
+  optional int32 id          = 1;
+  optional int32 region_id   = 2;
+  optional int32 district_id = 3;
+  optional int32 org_id      = 4;
+}
+
+message PaligonListResponse {
+  repeated PaligonRequest paligons = 1;
+}
+
+message PointRequest {
+  int32  id         = 1;
+  int32  paligon_id = 2;
+  int32  order      = 3;
+  int32  radius     = 4;
+  double latitude   = 5;
+  double longitude  = 6;
+  string start_time = 7;
+  string end_time   = 8;
+}
+
+message PointResponse {
+  int32 id = 1;
+}
+
+message PointDeleteRequest {
+  int32 id = 1;
+}
+
+message PointListRequest {
+  optional int32 paligon_id = 1;
+}
+
+message PointListResponse {
+  repeated PointRequest points = 1;
+}
+
+message Assignment {
+  int32           paligon_id = 1;
+  repeated string employees  = 2;
+  repeated string vehicles   = 3;
+}
+
+message DutyRequest {
+  int32               section_id  = 1;
+  string              started_at  = 2;
+  int32               org_id      = 3;
+  int32               region_id   = 4;
+  int32               district_id = 5;
+  repeated Assignment assignments = 6;
+}
+
+message DutyResponse {
+  int32 id = 1;
+}
+
+message StopDutyRequest {
+  int32  section_id = 1;
+  string ended_at   = 2;
+}
+
+message DutyListRequest {
+  optional int32  section_id  = 1;
+  optional string started_at  = 2;
+  optional int32  org_id      = 3;
+  optional int32  region_id   = 4;
+  optional int32  district_id = 5;
+}
+
+message DutyListResponse {
+  repeated DutyRequest duties = 1;
+}
+
+message LocationRequest {
+  string pinfl_hash = 1;
+  double latitude   = 2;
+  double longitude  = 3;
+  double accuracy   = 4;
+  int64  timestamp  = 5;
+}
+
+message DutyInfoRequest {
+  int32 section_id = 1;
+}
+
+message EmployeeInfo {
+  string pinfl_hash = 1;
+  double latitude   = 2;
+  double longitude  = 3;
+  bool   in_polygon = 4;
+  bool   at_point   = 5;
+  int32  point_id   = 6;
+  int64  updated_at = 7;
+}
+
+message VehicleInfo {
+  string plate_number = 1;
+  double latitude     = 2;
+  double longitude    = 3;
+  bool   in_polygon   = 4;
+  int64  updated_at   = 5;
+}
+
+message AssignmentInfo {
+  int32                 paligon_id = 1;
+  repeated EmployeeInfo employees  = 2;
+  repeated VehicleInfo  vehicles   = 3;
+}
+
+message DutyInfoResponse {
+  int32                   section_id  = 1;
+  repeated AssignmentInfo assignments = 2;
+}
+
+message AlarmRequest {
+  int32 section_id = 1;
+}
+
+message AlarmEvent {
+  int32  section_id = 1;
+  string type       = 2;
+  int32  paligon_id = 3;
+  int32  point_id   = 4;
+  double latitude   = 5;
+  double longitude  = 6;
+  string message    = 7;
+  int64  timestamp  = 8;
+
+  oneof subject {
+    string pinfl_hash   = 9;
+    string plate_number = 10;
+  }
+}
