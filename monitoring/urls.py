@@ -1,7 +1,7 @@
 from django.urls import path, re_path
 
 from monitoring.views import (
-    MapFiltersView, MapLiveView, MapHistoryView, MapZonesView,
+    MapFiltersView, MapLiveView, MapHistoryView, MapZonesView, MapTileProxyView,
     MainDutyView, MainDutyDetailView,
     MainDutySendForApprovalView, MainDutyApproveView, MainDutyRejectView,
     TaskView, TaskDetailView,
@@ -29,6 +29,7 @@ urlpatterns = [
     path('map/live/',    MapLiveView.as_view(),    name='map_live'),
     path('map/history/', MapHistoryView.as_view(), name='map_history'),
     path('map/zones/',   MapZonesView.as_view(),   name='map_zones'),
+    path('map/tiles/<int:z>/<int:x>/<int:y>.png', MapTileProxyView.as_view(), name='map_tile_proxy'),
 
     # Dashboard
     re_path(r'^dashboard/$', DashboardView.as_view(), name='dashboard_view'),

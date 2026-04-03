@@ -13,6 +13,8 @@ Rol-asosida ko'rinish:
 """
 import logging
 
+import urllib.request
+from django.http import HttpResponse
 from django.utils import timezone
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -282,7 +284,30 @@ class MapLiveView(APIView):
         })
 
 
-# ── 3. MapZonesView ─────────────────────────────────────────────
+# ── 3. MapTileProxyView ──────────────────────────────────────────
+
+class MapTileProxyView(APIView):
+    """
+    GET /api/v1/map/tiles/<z>/<x>/<y>.png
+    safecity.uz tile serverini proxy qiladi.
+    """
+    permission_classes = [IsAuthenticated]
+
+    TILE_URL = 'https://map.safecity.uz/v1/main/{z}/{x}/{y}.png'
+
+    def get(self, request, z, x, y):
+        url = self.TILE_URL.format(z=z, x=x, y=y)
+        try:
+            with urllib.request.urlopen(url, timeout=10) as resp:
+                return HttpResponse(
+                    resp.read(),
+                    content_type=resp.headers.get('Content-Type', 'image/png'),
+                )
+        except Exception:
+            return HttpResponse(status=502)
+
+
+# ── 4. MapZonesView ─────────────────────────────────────────────
 
 class MapZonesView(APIView):
     """
