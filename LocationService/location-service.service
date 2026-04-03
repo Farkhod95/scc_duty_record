@@ -1,0 +1,18 @@
+[Unit]
+Description=LocationService gRPC Server
+After=network.target postgresql.service
+
+[Service]
+Type=simple
+User=husan
+WorkingDirectory=/media/husan/NewVolume/UNUNTU/new/Project/Go/LocationService
+EnvironmentFile=/media/husan/NewVolume/UNUNTU/new/Project/Go/LocationService/.env
+ExecStart=/media/husan/NewVolume/UNUNTU/new/Project/Go/LocationService/bin/location-service
+Restart=always
+RestartSec=3
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=location-service
+
+[Install]
+WantedBy=multi-user.target

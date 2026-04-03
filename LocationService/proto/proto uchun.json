@@ -1,0 +1,71 @@
+{
+  "poligon": {
+    "id": 7,
+    "region_id": 14,
+    "district_id": 38,
+    "org_id": 5,
+    "boundary_data": [
+      {
+        "longitude": 69.24,
+        "latitude": 41.29
+      },
+      {
+        "longitude": 69.25,
+        "latitude": 41.30
+      },
+      {
+        "longitude": 69.26,
+        "latitude": 41.31
+      }
+    ]
+  }
+},
+{
+  "point": {
+    "id": 12,
+    "paligon_id": 7,
+    "order": 1,
+    "radius": 500,
+    "latitude": 69.24,
+    "longitude": 41.29,
+    "start_time": "08:00:00",
+    "end_time": "10:00:00"
+  }
+},
+{
+  "duty": {
+    "section_id": 24,
+    "started_at": "2026-03-28T08:03:21+05:00",
+    "org_id": 5,
+    "region_id": 14,
+    "district_id": 38,
+    "assignments": [
+      {
+        "paligon_id": 7,
+        "employees": [
+          "a3f1c2d4e5b678901234567890123456789012345678901234567890abcdef12",
+          "b7e2d3c5f6a78901234567890123456789012345678901234567890bcdef1234"
+        ],
+        "transports": [
+          "01A23BC"
+        ]
+      }
+    ]
+  }
+},
+{
+  "location": {
+    "pinfl_hash": "a3f1c2d4e5b678901234567890123456789012345678901234567890abcdef12",
+    "latitude": 41.299496,
+    "longitude": 69.240073,
+    "accuracy": 4.5,
+    "timestamp": 1711350000000
+  }
+},
+{
+  "stop_duty": {
+    "section_id": 24,
+    "ended_at": "2026-03-28T10:03:21+05:00"
+  }
+}
+// region  bo'yicha malumot 

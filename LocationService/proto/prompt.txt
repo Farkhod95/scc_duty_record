@@ -1,0 +1,197 @@
+Siz LocationService nomli ishga tayyor Go gRPC mikroservisini implement qilayapsiz.
+Loyihada proto/location.proto (O'ZGARTIRMA) va arxitektura qoidalari bilan CLAUDE.md
+allaqachon mavjud. Vazifangiz: quyidagi aniq strukturaga amal qilib har bir layerni
+noldan implement qilish.
+
+═══════════════════════════════════════════════
+ARXITEKTURA QOIDALARI (hech qachon buzilmasin)
+═══════════════════════════════════════════════
+Layer zanjiri:  gRPC Handler → Service → Repository → PostgreSQL / Tashqi HTTP
+
+- Handler:     faqat proto turlari + service interface. pgx va repo struct import qilinmasin.
+- Service:     barcha biznes logika shu yerda. pgx/sql import qilinmasin. proto import qilinmasin.
+- Repository:  faqat DB/HTTP operatsiyalar. proto import qilinmasin.
+- Har bir layer faqat interface orqali bog'lanadi (dependency inversion).
+- DI wiring faqat cmd/main.go da amalga oshiriladi.
+
+═══════════════════════════════════════════════
+MODUL VA PAPKA STRUKTURASI (aynan shu ko'rinishda yaratilsin)
+═══════════════════════════════════════════════
+Modul nomi: LocationService
+
+LocationService/
+├── cmd/main.go
+├── config/config.go
+├── models/
+│   ├── paligon.go        # Paligon, Coordinate structlari
+│   ├── point.go          # Point struct
+│   ├── duty.go           # Duty, Assignment structlari
+│   ├── location.go       # Location struct
+│   └── vehicle.go        # VehicleLocation struct
+├── internal/
+│   ├── handler/location_handler.go   # proto.LocationServiceServer ni implement qiladi
+│   ├── service/
+│   │   ├── interfaces.go             # LocationService interface
+│   │   └── location_service.go
+│   └── repository/
+│       ├── interfaces.go             # PaligonRepo, PointRepo, DutyRepo,
+│       │                             #   LocationRepo, VehicleTracker interfacelari
+│       ├── postgres/
+│       │   ├── paligon.go
+│       │   ├── point.go
+│       │   ├── duty.go
+│       │   └── location.go
+│       └── external/
+│           └── vehicle_tracker.go    # Mashina GPS uchun HTTP GET
+└── migrations/001_init.sql
+
+═══════════════════════════════════════════════
+MA'LUMOTLAR BAZASI SXEMASI  (migrations/001_init.sql)
+═══════════════════════════════════════════════
+Quyidagi jadvallarni indeks va cheklovlar bilan yarating:
+
+  paligons         – id, region_id, district_id, org_id, boundary_data JSONB, created_at
+  points           – id, paligon_id FK, order, radius INT, latitude, longitude,
+                     start_time TIME, end_time TIME, created_at
+  duties           – id, section_id (aktiv uchun UNIQUE), org_id, region_id, district_id,
+                     started_at TIMESTAMPTZ, ended_at TIMESTAMPTZ (nullable), status TEXT
+  duty_assignments – id, duty_id FK, paligon_id FK
+  duty_employees   – id, assignment_id FK, pinfl_hash VARCHAR(64)
+  duty_transports  – id, assignment_id FK, plate_number TEXT
+  locations        – id, pinfl_hash, latitude, longitude, accuracy, recorded_at TIMESTAMPTZ
+  point_visits     – id, pinfl_hash, point_id FK, duty_id FK, visited_at TIMESTAMPTZ
+                     UNIQUE(pinfl_hash, point_id, duty_id)
+  vehicle_locations– id, plate_number, latitude, longitude, speed, engine_on,
+                     tp_timestamp BIGINT, recorded_at TIMESTAMPTZ
+
+═══════════════════════════════════════════════
+MUHIT O'ZGARUVCHILARI  (config/config.go)
+═══════════════════════════════════════════════
+Env dan o'qilsin, default qiymatlar:
+  GRPC_PORT            = "50051"
+  DATABASE_URL         = "postgres://user:pass@localhost:5432/locationservice"
+  VEHICLE_API_URL      = "http://25.1.1.217:80/api/mobject/lastData"
+  VEHICLE_POLL_INTERVAL= "30s"
+
+═══════════════════════════════════════════════
+BIZNES LOGIKA  (service/location_service.go)
+═══════════════════════════════════════════════
+
+1. PaligonCreate / PaligonDelete / PaligonList
+   - Upsert qoidasi: req.Id > 0 bo'lsa → UPDATE, aks holda → INSERT RETURNING id
+
+2. PointCreate / PointDelete / PointList
+   - Paligon bilan bir xil upsert qoidasi
+
+3. DutyCreate
+   - duty, duty_assignments, duty_employees, duty_transports ni bitta pgx
+     tranzaksiyasida kiriting.
+   - Agar section_id da allaqachon aktiv duty mavjud bo'lsa → xatolik qaytaring.
+
+4. DutyStop
+   - Berilgan section_id dagi aktiv duty uchun ended_at va status='stopped' ni o'rnating.
+
+5. DutyList / DutyInfo
+   - DutyInfo xodim va mashina joriy pozitsiyalarini Haversine + Ray Casting yordamida
+     hisoblangan in_polygon / at_point flaglari bilan qaytaradi.
+
+6. Location (piyoda xodim GPS)
+   - locations jadvaliga saqlang.
+   - Ushbu pinfl_hash ni o'z ichiga olgan aktiv duty assignmentlarini toping.
+   - Har bir mos assignment uchun: polygon tekshiruvi + nuqta tashrif tekshiruvi.
+   - Xodim polygondan tashqarida bo'lsa → shu section_id ga obuna bo'lgan barcha
+     AlarmStream oqimlariga AlarmEvent{type:"OUT_OF_POLYGON"} yuboring.
+   - Paligondagi har bir Point uchun: xodim radiusda bo'lsa VA joriy vaqt
+     [start_time, end_time] oralig'ida bo'lsa VA point_visit yo'q bo'lsa → point_visit kiriting.
+   - Joriy vaqt end_time dan o'tgan bo'lsa va point_visit yo'q bo'lsa →
+     AlarmEvent{type:"POINT_MISSED"} yuboring.
+
+7. AlarmStream (server-side streaming)
+   - Thread-safe map saqlang: section_id → []chan AlarmEvent.
+   - Obuna bo'lganda kanal ro'yxatdan o'tkazilsin, ctx.Done() da o'chirilsin.
+   - Location RPC va Vehicle poller dan kelgan alarmlar shu section_id ga
+     obuna bo'lgan barcha kanallarga yuborilsin (fan-out).
+
+8. Vehicle Poller (fon goroutine, cmd/main.go da ishga tushiriladi)
+   - Har VEHICLE_POLL_INTERVAL da:
+     a. duties (WHERE ended_at IS NULL) bilan join qilib duty_transports dan
+        plate_numberlarni oling.
+     b. VEHICLE_API_URL ga GET so'rov yuboring, "result" kaliti ostidagi JSON massivni
+        unmarshal qiling.
+     c. plateNumber bo'yicha (katta-kichik harfga sezgir emas) moslashtiring.
+     d. vehicle_locations ga upsert qiling (ON CONFLICT plate_number DO UPDATE).
+     e. Har bir mos mashina uchun: assignment paligon chegarasi bo'yicha polygon tekshiruvi.
+     f. Polygondan tashqarida bo'lsa → AlarmEvent{type:"OUT_OF_POLYGON", plate_number:...} fan-out.
+
+═══════════════════════════════════════════════
+MAJBURIY ALGORITMLAR  (service paketi ichida implement qilinsin)
+═══════════════════════════════════════════════
+
+Haversine (metrda masofa qaytaradi):
+  const R = 6371000
+  math.Sin, math.Cos, math.Atan2, math.Sqrt ishlatilsin
+
+Ray Casting (nuqta polygon ichidami):
+  chegara qirralarini aylanib, test nuqtasidan sharqqa yo'nalgan nurni kesishlarini sanang.
+  inside = (kesishlar soni % 2 == 1) bo'lsa true qaytaring
+
+═══════════════════════════════════════════════
+XATOLIKLARNI QAYTA ISHLASH KONVENSIYASI
+═══════════════════════════════════════════════
+- Repository xatoliklari → serviceda fmt.Errorf("amaliyot: %w", err) bilan wrap qilinsin.
+- Service xatoliklari → handlerda gRPC status kodiga aylantirilsin:
+    codes.InvalidArgument  – majburiy maydonlar yo'q yoki noto'g'ri
+    codes.NotFound         – yozuv topilmadi
+    codes.AlreadyExists    – aktiv duty takrorlanmoqda
+    codes.Internal         – kutilmagan xatoliklar
+
+═══════════════════════════════════════════════
+CONTEXT QOIDALARI
+═══════════════════════════════════════════════
+- Har bir metod birinchi parametri ctx context.Context bo'lsin.
+- Barcha DB so'rovlarida ctx ishlatilsin: pool.QueryRow(ctx, ...) / pool.Exec(ctx, ...).
+- Fon goroutinelari main dan uzatilgan root ctx asosida context.WithCancel ishlatsin.
+
+═══════════════════════════════════════════════
+VEHICLE API SHARTNOMASI
+═══════════════════════════════════════════════
+GET http://25.1.1.217:80/api/mobject/lastData
+Javob:
+{
+  "result": [{
+    "contractId": 1204, "mobjectId": 3938,
+    "plateNumber": "01179VSC",
+    "lat": 41.288, "lon": 69.201,
+    "tpTimestamp": 1774939442050,
+    "speed": 0, "movement": 0, "engineOn": 0
+  }],
+  "error": null
+}
+Mahalliy struct ga unmarshal qiling; lat→Latitude, lon→Longitude ga map qiling.
+
+═══════════════════════════════════════════════
+go.mod bog'liqliklari (scaffold dan keyin go get ishlatilsin)
+═══════════════════════════════════════════════
+  google.golang.org/grpc
+  google.golang.org/protobuf
+  github.com/jackc/pgx/v5
+  github.com/jackc/pgx/v5/pgxpool
+
+═══════════════════════════════════════════════
+IMPLEMENT QILISH TARTIBI
+═══════════════════════════════════════════════
+1. go.mod + go.sum scaffold
+2. config/config.go
+3. models/*.go
+4. migrations/001_init.sql
+5. repository interfacelari (interfaces.go)
+6. repository/postgres/*.go  (har bir fayl: o'z interfeysi ni implement qiluvchi bitta struct)
+7. repository/external/vehicle_tracker.go
+8. service/interfaces.go
+9. service/location_service.go  (haversine, rayCasting unexported helperlar sifatida)
+10. internal/handler/location_handler.go
+11. cmd/main.go  (hammani wire qilish, vehicle poller goroutine ni ishga tushirish, gRPC server start)
+
+Proto fayllarini YARATMA — ular allaqachon mavjud.
+Ro'yxatda ko'rsatilganidan ortiq keraksiz abstraktsiyalar QO'SHMA.
+Har bir fayl uchun haqiqiy, kompilyatsiya bo'ladigan Go kodi yoz.

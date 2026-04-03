@@ -55,6 +55,40 @@ services:
     depends_on:
       - redis
 
+  location_service_db:
+    image: postgres:16-alpine
+    container_name: locationservice-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: LocationService
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: "52351"
+    volumes:
+      - locationservice_postgres_data:/var/lib/postgresql/data
+      - ./LocationService/migrations/001_init.sql:/docker-entrypoint-initdb.d/001_init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d LocationService"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  location_service:
+    build: ./LocationService
+    container_name: locationservice-app
+    restart: unless-stopped
+    depends_on:
+      location_service_db:
+        condition: service_healthy
+    environment:
+      GRPC_PORT: 50051
+      DATABASE_URL: postgres://postgres:52351@locationservice-db:5432/LocationService
+      VEHICLE_API_URL: http://25.1.1.217:80/api/mobject/lastData
+      VEHICLE_API_TOKEN: 6bq6kimsmhniuothjbkai715n2
+      VEHICLE_POLL_INTERVAL: 30s
+    ports:
+      - "50051:50051"
+
 volumes:
   postgres_data:
   static_volume:
+  locationservice_postgres_data:

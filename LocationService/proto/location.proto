@@ -1,0 +1,294 @@
+syntax = "proto3";
+
+package LocationService;
+
+option go_package = "LocationService/proto;proto";
+
+// ═══════════════════════════════════════════════════════════════
+// LocationService — xodimlar va mashinalar lokatsiyasini
+// real-vaqtda kuzatish, polygon chegarasi va nuqta tashriflarini
+// tekshirish uchun gRPC servisi
+// ═══════════════════════════════════════════════════════════════
+service LocationService {
+
+  // ── Paligon ──────────────────────────────────────────────────
+
+  // PaligonCreate — yangi polygon hudud yaratadi yoki mavjudini yangilaydi.
+  // Agar request.id > 0 bo'lsa UPDATE, aks holda INSERT bajariladi.
+  rpc PaligonCreate (PaligonRequest)       returns (PaligonResponse);
+
+  // PaligonDelete — berilgan id bo'yicha polygonni o'chiradi.
+  // Bog'liq pointlar va duty_assignments ham cascade o'chadi.
+  rpc PaligonDelete (PaligonDeleteRequest) returns (Empty);
+
+  // PaligonList — filter bo'yicha polygonlar ro'yxatini qaytaradi.
+  // Barcha filterlar ixtiyoriy: hech biri berilmasa hammasi qaytadi.
+  rpc PaligonList   (PaligonFilterRequest) returns (PaligonListResponse);
+
+  // ── Point ────────────────────────────────────────────────────
+
+  // PointCreate — polygondagi tashrif nuqtasini yaratadi yoki yangilaydi.
+  // Xodim belgilangan radius ichiga kirsa point_visit qayd etiladi.
+  rpc PointCreate (PointRequest)       returns (PointResponse);
+
+  // PointDelete — berilgan id bo'yicha nuqtani o'chiradi.
+  rpc PointDelete (PointDeleteRequest) returns (Empty);
+
+  // PointList — paligon_id bo'yicha nuqtalar ro'yxatini qaytaradi.
+  rpc PointList   (PointListRequest)   returns (PointListResponse);
+
+  // ── Duty ─────────────────────────────────────────────────────
+
+  // DutyCreate — yangi ish smenasi yaratadi.
+  // section_id da allaqachon aktiv duty mavjud bo'lsa AlreadyExists xatosi qaytadi.
+  // Tranzaksiya ichida: duty → assignments → employees → vehicles kiritiladi.
+  rpc DutyCreate (DutyRequest)     returns (DutyResponse);
+
+  // DutyStop — aktiv duty ni to'xtatadi (ended_at o'rnatadi).
+  // To'xtatilgandan keyin shu section_id uchun yangi duty yaratish mumkin.
+  rpc DutyStop   (StopDutyRequest) returns (Empty);
+
+  // DutyList — filter bo'yicha duty tarixini qaytaradi.
+  rpc DutyList   (DutyListRequest) returns (DutyListResponse);
+
+  // DutyInfo — joriy aktiv duty holati: xodimlar va mashinalarning
+  // so'nggi koordinatalari, polygon ichida/tashqarisida ekanligi,
+  // qaysi nuqtada turganligi haqida ma'lumot qaytaradi.
+  rpc DutyInfo   (DutyInfoRequest) returns (DutyInfoResponse);
+
+  // ── Lokatsiya & Ogohlantirish ─────────────────────────────────
+
+  // Location — piyoda xodimning GPS koordinatasini qabul qiladi.
+  // Avtomatik ravishda:
+  //   • Polygon chegarasi tekshiriladi (Ray Casting algoritmi)
+  //   • Nuqta radiusi tekshiriladi (Haversine formulasi)
+  //   • Polygon tashqarida bo'lsa OUT_OF_POLYGON alarmi yuboriladi
+  //   • Nuqta vaqtidan o'tib ketgan, lekin tashrif yo'q bo'lsa POINT_MISSED alarmi yuboriladi
+  rpc Location    (LocationRequest) returns (Empty);
+
+  // AlarmStream — berilgan section_id uchun real-vaqt ogohlantirish oqimi.
+  // Server-side streaming: mijoz ulanib turadi, alarmlar kelganda darhol yuboriladi.
+  // Alarm turlari: OUT_OF_POLYGON | POINT_MISSED
+  rpc AlarmStream (AlarmRequest)    returns (stream AlarmEvent);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Umumiy turlar
+// ═══════════════════════════════════════════════════════════════
+
+// Empty — javob qaytarmaydigan RPC lar uchun bo'sh xabar.
+message Empty {}
+
+// Coordinate — geografik koordinata (kenglik va uzunlik).
+message Coordinate {
+  double longitude = 1; // Uzunlik (lon): sharq-g'arb yo'nalishi, masalan 69.24
+  double latitude  = 2; // Kenglik (lat): shimol-janub yo'nalishi, masalan 41.29
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Paligon — xodimlar ishlaydigan polygon hudud
+// ═══════════════════════════════════════════════════════════════
+
+// PaligonRequest — polygon yaratish yoki yangilash uchun ma'lumot.
+// id > 0 bo'lsa mavjud polygon yangilanadi.
+message PaligonRequest {
+  int32               id            = 1; // 0 = yangi yaratish, >0 = yangilash
+  int32               region_id     = 2; // Viloyat identifikatori
+  int32               district_id   = 3; // Tuman identifikatori
+  int32               org_id        = 4; // Tashkilot identifikatori (majburiy)
+  repeated Coordinate boundary_data = 5; // Polygon chegarasi koordinatalari ro'yxati
+}
+
+// PaligonResponse — yaratilgan yoki yangilangan polygon id si.
+message PaligonResponse {
+  int32 id = 1; // Polygon id
+}
+
+// PaligonDeleteRequest — o'chiriladigan polygon id si.
+message PaligonDeleteRequest {
+  int32 id = 1; // O'chiriladigan polygon id
+}
+
+// PaligonFilterRequest — ro'yxat olish uchun filter.
+// Barcha maydonlar ixtiyoriy, berilmaganlar filtrlashda ishlatilmaydi.
+message PaligonFilterRequest {
+  optional int32 id          = 1; // Aniq id bo'yicha qidirish
+  optional int32 region_id   = 2; // Viloyat bo'yicha filter
+  optional int32 district_id = 3; // Tuman bo'yicha filter
+  optional int32 org_id      = 4; // Tashkilot bo'yicha filter
+}
+
+// PaligonListResponse — filter natijasidagi polygonlar ro'yxati.
+message PaligonListResponse {
+  repeated PaligonRequest paligons = 1; // Polygon ma'lumotlari ro'yxati
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Point — polygon ichidagi majburiy tashrif nuqtasi
+// ═══════════════════════════════════════════════════════════════
+
+// PointRequest — nuqta yaratish yoki yangilash uchun ma'lumot.
+// Xodim radius ichiga belgilangan vaqt oralig'ida kirishi shart.
+message PointRequest {
+  int32  id         = 1; // 0 = yangi yaratish, >0 = yangilash
+  int32  paligon_id = 2; // Qaysi polygonga tegishli (majburiy)
+  int32  order      = 3; // Tashrif tartibi raqami
+  int32  radius     = 4; // Tashrif radiusi (metrda), masalan 500
+  double latitude   = 5; // Nuqta kengligi
+  double longitude  = 6; // Nuqta uzunligi
+  string start_time = 7; // Tashrif vaqti boshlanishi, format: "HH:MM:SS"
+  string end_time   = 8; // Tashrif vaqti tugashi, format: "HH:MM:SS"
+}
+
+// PointResponse — yaratilgan yoki yangilangan nuqta id si.
+message PointResponse {
+  int32 id = 1; // Nuqta id
+}
+
+// PointDeleteRequest — o'chiriladigan nuqta id si.
+message PointDeleteRequest {
+  int32 id = 1; // O'chiriladigan nuqta id
+}
+
+// PointListRequest — nuqtalar ro'yxatini olish uchun so'rov.
+message PointListRequest {
+  optional int32 paligon_id = 1; // Berilsa — faqat shu polygonning nuqtalari
+}
+
+// PointListResponse — nuqtalar ro'yxati.
+message PointListResponse {
+  repeated PointRequest points = 1; // Nuqtalar ro'yxati (order bo'yicha tartiblangan)
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Duty — ish smenasi
+// ═══════════════════════════════════════════════════════════════
+
+// Assignment — duty ichidagi bir polygon uchun xodimlar va mashinalar guruhi.
+// Bir duty bir nechta assignment ga ega bo'lishi mumkin (har biri o'z polygoni bilan).
+message Assignment {
+  int32           paligon_id = 1; // Bu guruh qaysi polygonda ishlaydi
+  repeated string employees  = 2; // Xodimlar pinfl_hash ro'yxati (64 belgi)
+  repeated string vehicles   = 3; // Mashinalar davlat raqami ro'yxati, masalan "01A23BC"
+}
+
+// DutyRequest — yangi ish smenasi yaratish uchun ma'lumot.
+message DutyRequest {
+  int32               section_id  = 1; // Bo'lim identifikatori (majburiy, unikal aktiv duty uchun)
+  string              started_at  = 2; // Smena boshlanish vaqti, format: ISO 8601
+  int32               org_id      = 3; // Tashkilot identifikatori
+  int32               region_id   = 4; // Viloyat identifikatori
+  int32               district_id = 5; // Tuman identifikatori
+  repeated Assignment assignments = 6; // Polygon-xodim-mashina guruhlari
+}
+
+// DutyResponse — yaratilgan duty id si.
+message DutyResponse {
+  int32 id = 1; // Duty id
+}
+
+// StopDutyRequest — aktiv duty ni to'xtatish uchun so'rov.
+message StopDutyRequest {
+  int32  section_id = 1; // To'xtatilishi kerak bo'lgan bo'lim id si
+  string ended_at   = 2; // Smena tugash vaqti, format: ISO 8601
+}
+
+// DutyListRequest — duty tarixi uchun filter.
+// Barcha maydonlar ixtiyoriy.
+message DutyListRequest {
+  optional int32  section_id  = 1; // Bo'lim bo'yicha filter
+  optional string started_at  = 2; // Sana bo'yicha filter (YYYY-MM-DD)
+  optional int32  org_id      = 3; // Tashkilot bo'yicha filter
+  optional int32  region_id   = 4; // Viloyat bo'yicha filter
+  optional int32  district_id = 5; // Tuman bo'yicha filter
+}
+
+// DutyListResponse — duty tarixi ro'yxati.
+message DutyListResponse {
+  repeated DutyRequest duties = 1; // Duty ma'lumotlari ro'yxati
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Lokatsiya
+// ═══════════════════════════════════════════════════════════════
+
+// LocationRequest — piyoda xodimning GPS ma'lumoti.
+// Bu RPC chaqirilganda avtomatik polygon va nuqta tekshiruvi bajariladi.
+message LocationRequest {
+  string pinfl_hash = 1; // Xodim identifikatori (64 belgi, majburiy)
+  double latitude   = 2; // Joriy kenglik
+  double longitude  = 3; // Joriy uzunlik
+  double accuracy   = 4; // GPS aniqligi (metrda)
+  int64  timestamp  = 5; // Vaqt tamg'asi (Unix millisekund)
+}
+
+// ═══════════════════════════════════════════════════════════════
+// DutyInfo — joriy smena holati
+// ═══════════════════════════════════════════════════════════════
+
+// DutyInfoRequest — joriy smena holati uchun so'rov.
+message DutyInfoRequest {
+  int32 section_id = 1; // Qaysi bo'lim aktiv smenasini ko'rish kerak
+}
+
+// EmployeeInfo — xodimning joriy holati.
+message EmployeeInfo {
+  string pinfl_hash = 1; // Xodim identifikatori
+  double latitude   = 2; // So'nggi ma'lum kenglik
+  double longitude  = 3; // So'nggi ma'lum uzunlik
+  bool   in_polygon = 4; // Hozir polygon ichidami (Ray Casting)
+  bool   at_point   = 5; // Hozir biror nuqta radiusidami (Haversine)
+  int32  point_id   = 6; // Qaysi nuqtada: -1 = hech qaysi nuqtada emas
+  int64  updated_at = 7; // So'nggi yangilanish vaqti (Unix millisekund)
+}
+
+// VehicleInfo — mashinaning joriy holati.
+message VehicleInfo {
+  string plate_number = 1; // Davlat raqami, masalan "01A23BC"
+  double latitude     = 2; // So'nggi ma'lum kenglik
+  double longitude    = 3; // So'nggi ma'lum uzunlik
+  bool   in_polygon   = 4; // Hozir polygon ichidami
+  int64  updated_at   = 5; // So'nggi yangilanish vaqti (Unix millisekund)
+}
+
+// AssignmentInfo — bir polygon uchun xodimlar va mashinalar joriy holati.
+message AssignmentInfo {
+  int32                 paligon_id = 1; // Polygon identifikatori
+  repeated EmployeeInfo employees  = 2; // Xodimlar holati ro'yxati
+  repeated VehicleInfo  vehicles   = 3; // Mashinalar holati ro'yxati
+}
+
+// DutyInfoResponse — aktiv smena bo'yicha to'liq joriy holat.
+message DutyInfoResponse {
+  int32                   section_id  = 1; // Bo'lim identifikatori
+  repeated AssignmentInfo assignments = 2; // Har bir polygon uchun holat
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Alarm — ogohlantirish tizimi
+// ═══════════════════════════════════════════════════════════════
+
+// AlarmRequest — ogohlantirish oqimiga obuna bo'lish uchun so'rov.
+message AlarmRequest {
+  int32 section_id = 1; // Qaysi bo'lim alarmlarini olish kerak
+}
+
+// AlarmEvent — real-vaqt ogohlantirish xabari.
+// subject maydoni kim sabab bo'lganini ko'rsatadi: xodim yoki mashina.
+message AlarmEvent {
+  int32  section_id = 1; // Qaysi bo'limda sodir bo'ldi
+  string type       = 2; // Alarm turi: "OUT_OF_POLYGON" yoki "POINT_MISSED"
+  int32  paligon_id = 3; // Qaysi polygonda sodir bo'ldi
+  int32  point_id   = 4; // Faqat POINT_MISSED uchun — qaysi nuqta o'tkazib yuborildi (0 = N/A)
+  double latitude   = 5; // Hodisa sodir bo'lgan kenglik
+  double longitude  = 6; // Hodisa sodir bo'lgan uzunlik
+  string message    = 7; // Odam o'qishi uchun tavsif
+  int64  timestamp  = 8; // Hodisa vaqti (Unix millisekund)
+
+  // subject — kim sabab bo'ldi: xodim (pinfl_hash) yoki mashina (plate_number).
+  // Faqat bittasi to'ldiriladi.
+  oneof subject {
+    string pinfl_hash   = 9;  // Xodim identifikatori (OUT_OF_POLYGON yoki POINT_MISSED)
+    string plate_number = 10; // Mashina davlat raqami (OUT_OF_POLYGON)
+  }
+}
