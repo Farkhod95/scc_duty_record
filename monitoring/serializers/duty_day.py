@@ -8,6 +8,17 @@ from monitoring.models import DutyDay, DutySection, DutySectionAssignment
 User = get_user_model()
 
 
+class LocationDetailSerializer(serializers.ModelSerializer):
+    mahallas = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Location
+        fields = ['id', 'title', 'mahallas']
+
+    def get_mahallas(self, obj):
+        return [{'id': m.pk, 'name': m.name} for m in obj.mahallas.all()]
+
+
 class DutySectionAssignmentSerializer(serializers.ModelSerializer):
     employees = serializers.PrimaryKeyRelatedField(
         many=True, queryset=User.objects.all(), required=False
@@ -19,7 +30,7 @@ class DutySectionAssignmentSerializer(serializers.ModelSerializer):
         many=True, queryset=Transport.objects.all(), required=False
     )
     employees_detail = serializers.SerializerMethodField()
-    location_title = serializers.CharField(source='location.title', read_only=True, default=None)
+    location_detail = serializers.SerializerMethodField()
     transports_detail = serializers.SerializerMethodField()
 
     class Meta:
@@ -27,7 +38,7 @@ class DutySectionAssignmentSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'duty_section',
             'employees', 'employees_detail',
-            'location', 'location_title',
+            'location', 'location_detail',
             'transports', 'transports_detail',
             'note', 'created_time',
         ]
@@ -35,6 +46,11 @@ class DutySectionAssignmentSerializer(serializers.ModelSerializer):
 
     def get_employees_detail(self, obj):
         return [{'id': e.pk, 'name': str(e)} for e in obj.employees.all()]
+
+    def get_location_detail(self, obj):
+        if obj.location is None:
+            return None
+        return LocationDetailSerializer(obj.location).data
 
     def get_transports_detail(self, obj):
         return [{'id': t.pk, 'name': str(t)} for t in obj.transports.all()]
