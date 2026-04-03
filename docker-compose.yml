@@ -17,7 +17,9 @@ services:
     command: ["daphne", "-b", "0.0.0.0", "-p", "8000", "main.asgi:application"]
 
   frontend:
-    build: ./jts-scc
+    build:
+      context: .
+      dockerfile: jts-scc/Dockerfile
     container_name: duty_record_frontend
     restart: always
     ports:
