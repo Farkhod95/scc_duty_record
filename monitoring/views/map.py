@@ -282,7 +282,92 @@ class MapLiveView(APIView):
         })
 
 
-# ── 3. MapHistoryView ────────────────────────────────────────────
+# ── 3. MapZonesView ─────────────────────────────────────────────
+
+class MapZonesView(APIView):
+    """
+    GET /api/v1/map/zones/
+    Hozir active bo'lgan sectionlarning location chegaralarini (GeoJSON) qaytaradi.
+    Query params: date, organization_id, district_id, region_id, section_id
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        params = request.query_params
+        now = timezone.now()
+
+        qs = DutySection.objects.select_related(
+            'duty_day__organization__district__region',
+        ).prefetch_related(
+            'assignments__location__mahallas',
+        ).filter(
+            duty_day__status__in=['SUBMITTED', 'COLLECTED', 'APPROVED'],
+        )
+
+        if not request.user.is_super_admin():
+            if request.user.is_district_admin() or request.user.is_collector():
+                qs = qs.filter(duty_day__organization__district_id=request.user.district_id)
+            else:
+                qs = qs.filter(duty_day__organization=request.user.organization)
+
+        date = params.get('date')
+        qs = qs.filter(duty_day__duty_date=date) if date else qs.filter(duty_day__duty_date=timezone.localdate())
+
+        if params.get('organization_id'):
+            if not request.user.is_super_admin() is False:
+                if request.user.is_super_admin() or request.user.is_district_admin() or request.user.is_collector():
+                    qs = qs.filter(duty_day__organization_id=params['organization_id'])
+        if params.get('district_id') and request.user.is_super_admin():
+            qs = qs.filter(duty_day__organization__district_id=params['district_id'])
+        if params.get('region_id') and request.user.is_super_admin():
+            qs = qs.filter(duty_day__organization__district__region_id=params['region_id'])
+        if params.get('section_id'):
+            qs = qs.filter(pk=params['section_id'])
+
+        # Faqat hozir active (start_time <= now <= end_time) bo'lgan sectionlar
+        active_only = params.get('active_only', 'true').lower() != 'false'
+        if active_only:
+            qs = qs.filter(start_time__lte=now, end_time__gte=now)
+
+        results = []
+        for section in qs:
+            org = section.duty_day.organization
+            zones = []
+            for asgn in section.assignments.all():
+                loc = asgn.location
+                if loc is None:
+                    continue
+                zones.append({
+                    'assignment_id': asgn.pk,
+                    'location': {
+                        'id': loc.pk,
+                        'title': loc.title,
+                        'boundary_data': loc.boundary_data,
+                        'mahallas': [
+                            {'id': m.pk, 'name': m.name, 'boundary_data': m.boundary_data}
+                            for m in loc.mahallas.all()
+                        ],
+                    },
+                })
+
+            results.append({
+                'section_id': section.pk,
+                'stage_number': section.stage_number,
+                'name': section.name,
+                'start_time': section.start_time,
+                'end_time': section.end_time,
+                'organization': {
+                    'id': org.pk,
+                    'name': org.name,
+                    'district': org.district.name if org.district else None,
+                },
+                'zones': zones,
+            })
+
+        return Response({'results': results})
+
+
+# ── 4. MapHistoryView ────────────────────────────────────────────
 
 class MapHistoryView(APIView):
     """
