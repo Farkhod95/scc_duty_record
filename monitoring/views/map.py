@@ -293,7 +293,7 @@ class MapTileProxyView(APIView):
     """
     permission_classes = [IsAuthenticated]
 
-    TILE_URL = 'https://map.safecity.uz/v1/main/{z}/{x}/{y}.png'
+    TILE_URL = 'https://tosh.safecity.uz/map/main/{z}/{x}/{y}.png'
 
     def get(self, request, z, x, y):
         url = self.TILE_URL.format(z=z, x=x, y=y)
