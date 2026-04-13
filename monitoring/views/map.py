@@ -353,9 +353,9 @@ class MapZonesView(APIView):
                             {
                                 'id': p.pk,
                                 'order': p.order,
-                                'latitude': float(p.latitude),
-                                'longitude': float(p.longitude),
-                                'radius': p.radius,
+                                'name': p.name,
+                                'latitude': float(p.latitude) if p.latitude else None,
+                                'longitude': float(p.longitude) if p.longitude else None,
                                 'start_time': p.start_time,
                                 'end_time': p.end_time,
                             }
