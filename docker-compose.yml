@@ -95,6 +95,9 @@ services:
       VEHICLE_POLL_INTERVAL: 30s
     ports:
       - "50051:50051"
+    networks:
+      - default
+      - jts-scc_default
 
 volumes:
   postgres_data:
@@ -102,3 +105,7 @@ volumes:
     name: scc_duty_record_postgres_data
   static_volume:
   locationservice_postgres_data:
+
+networks:
+  jts-scc_default:
+    external: true
