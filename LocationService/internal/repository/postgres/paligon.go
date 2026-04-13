@@ -41,12 +41,17 @@ func (r *paligonRepo) Update(ctx context.Context, p *models.Paligon) error {
 		return fmt.Errorf("marshal boundary: %w", err)
 	}
 	_, err = r.db.Exec(ctx,
-		`UPDATE paligons SET region_id=$1, district_id=$2, org_id=$3, boundary_data=$4
-		 WHERE id=$5`,
-		p.RegionID, p.DistrictID, p.OrgID, boundary, p.ID,
+		`INSERT INTO paligons (id, region_id, district_id, org_id, boundary_data)
+		 VALUES ($1, $2, $3, $4, $5)
+		 ON CONFLICT (id) DO UPDATE SET
+		     region_id=EXCLUDED.region_id,
+		     district_id=EXCLUDED.district_id,
+		     org_id=EXCLUDED.org_id,
+		     boundary_data=EXCLUDED.boundary_data`,
+		p.ID, p.RegionID, p.DistrictID, p.OrgID, boundary,
 	)
 	if err != nil {
-		return fmt.Errorf("update paligon: %w", err)
+		return fmt.Errorf("upsert paligon: %w", err)
 	}
 	return nil
 }
