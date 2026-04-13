@@ -13,8 +13,6 @@ Rol-asosida ko'rinish:
 """
 import logging
 
-import urllib.request
-from django.http import HttpResponse
 from django.utils import timezone
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -285,42 +283,8 @@ class MapLiveView(APIView):
 
 
 # ── 3. MapTileProxyView ──────────────────────────────────────────
-
-class MapTileProxyView(APIView):
-    """
-    GET /api/v1/map/tiles/<z>/<x>/<y>.png
-    safecity.uz tile serverini proxy qiladi. Tillar Redis'da 24 soat cache qilinadi.
-    """
-    permission_classes = []
-    authentication_classes = []
-
-    TILE_URL = 'https://tosh.safecity.uz/map/main/{z}/{x}/{y}.png'
-    CACHE_TTL = 60 * 60 * 24  # 24 soat
-
-    def get(self, request, z, x, y):
-        from django.core.cache import cache
-
-        cache_key = f'tile:{z}:{x}:{y}'
-        cached = cache.get(cache_key)
-        if cached:
-            return HttpResponse(cached, content_type='image/png')
-
-        url = self.TILE_URL.format(z=z, x=x, y=y)
-        try:
-            req = urllib.request.Request(url, headers={
-                'User-Agent': 'Mozilla/5.0 (compatible; TileProxy/1.0)',
-                'Referer': 'https://tosh.safecity.uz/',
-                'Accept': 'image/png,image/*,*/*',
-                'Accept-Language': 'uz,ru;q=0.9,en;q=0.8',
-                'Connection': 'keep-alive',
-            })
-            with urllib.request.urlopen(req, timeout=15) as resp:
-                data = resp.read()
-        except Exception:
-            return HttpResponse(status=502)
-
-        cache.set(cache_key, data, self.CACHE_TTL)
-        return HttpResponse(data, content_type='image/png')
+# Tile proxying nginx tomonidan hal qilinadi (nginx.conf location ~ ^/api/v1/map/tiles/)
+# Bu view faqat nginx bypass qilinsa fallback sifatida 404 qaytaradi
 
 
 # ── 4. MapZonesView ─────────────────────────────────────────────
@@ -341,6 +305,7 @@ class MapZonesView(APIView):
             'duty_day__organization__district__region',
         ).prefetch_related(
             'assignments__location__mahallas',
+            'assignments__location__points',
         ).filter(
             duty_day__status__in=['SUBMITTED', 'COLLECTED', 'APPROVED'],
         )
@@ -384,6 +349,18 @@ class MapZonesView(APIView):
                         'id': loc.pk,
                         'title': loc.title,
                         'boundary_data': loc.boundary_data,
+                        'points': [
+                            {
+                                'id': p.pk,
+                                'order': p.order,
+                                'latitude': float(p.latitude),
+                                'longitude': float(p.longitude),
+                                'radius': p.radius,
+                                'start_time': p.start_time,
+                                'end_time': p.end_time,
+                            }
+                            for p in loc.points.order_by('order')
+                        ],
                         'mahallas': [
                             {'id': m.pk, 'name': m.name, 'boundary_data': m.boundary_data}
                             for m in loc.mahallas.all()

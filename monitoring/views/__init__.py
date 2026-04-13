@@ -27,4 +27,4 @@ from monitoring.views.event import (
     EventSubmitView, EventCollectView, EventApproveView, EventRejectView,
     EventPdfView,
 )
-from monitoring.views.map import MapFiltersView, MapLiveView, MapHistoryView, MapZonesView, MapTileProxyView
+from monitoring.views.map import MapFiltersView, MapLiveView, MapHistoryView, MapZonesView
