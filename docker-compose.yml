@@ -17,8 +17,8 @@ services:
 
   frontend:
     build:
-      context: ../
-      dockerfile: ../jts-scc/Dockerfile
+      context: ./jts-scc
+      dockerfile: Dockerfile
     container_name: duty_record_frontend
     restart: always
     ports:
