@@ -1,13 +1,13 @@
 from django.utils import timezone
 from rest_framework import serializers
 
-from monitoring.models import TerritoryExitLog, TaskAssignment
+from monitoring.models import TerritoryExitLog, DutySectionAssignment
 
 
 class TerritoryExitLogCreateSerializer(serializers.Serializer):
-    task_assignment_id = serializers.IntegerField(
+    duty_section_assignment_id = serializers.IntegerField(
         required=False, allow_null=True,
-        help_text="Vazifa tayinlanishi ID (ixtiyoriy)"
+        help_text="DutySectionAssignment ID (ixtiyoriy)"
     )
     reason = serializers.CharField(
         help_text="Hududni tark etish sababi"
@@ -17,11 +17,11 @@ class TerritoryExitLogCreateSerializer(serializers.Serializer):
         help_text="Chiqish vaqti ISO 8601 (bo'sh qolsa hozirgi vaqt)"
     )
 
-    def validate_task_assignment_id(self, value):
+    def validate_duty_section_assignment_id(self, value):
         if value is None:
             return value
-        if not TaskAssignment.objects.filter(id=value).exists():
-            raise serializers.ValidationError(f"task_assignment_id={value} topilmadi.")
+        if not DutySectionAssignment.objects.filter(id=value).exists():
+            raise serializers.ValidationError(f"duty_section_assignment_id={value} topilmadi.")
         return value
 
     def save(self, **kwargs):
@@ -29,7 +29,7 @@ class TerritoryExitLogCreateSerializer(serializers.Serializer):
         data = self.validated_data
         return TerritoryExitLog.objects.create(
             employee=employee,
-            task_assignment_id=data.get('task_assignment_id'),
+            duty_section_assignment_id=data.get('duty_section_assignment_id'),
             reason=data['reason'],
             exit_time=data.get('exit_time') or timezone.now(),
         )
@@ -46,13 +46,13 @@ class TerritoryExitLogSerializer(serializers.ModelSerializer):
     employee_id = serializers.IntegerField(source='employee.id')
     employee_name = serializers.SerializerMethodField()
     employee_position = serializers.SerializerMethodField()
-    task_assignment_id = serializers.IntegerField(allow_null=True)
+    duty_section_assignment_id = serializers.IntegerField(allow_null=True)
 
     class Meta:
         model = TerritoryExitLog
         fields = [
             'id', 'employee_id', 'employee_name', 'employee_position',
-            'task_assignment_id', 'reason',
+            'duty_section_assignment_id', 'reason',
             'exit_time', 'return_time', 'created_time',
         ]
 

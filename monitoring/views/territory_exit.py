@@ -45,13 +45,13 @@ class TerritoryExitLogListView(APIView):
     Filter parametrlari:
       - employee_id
       - date (YYYY-MM-DD) — exit_time bo'yicha
-      - task_assignment_id
+      - duty_section_assignment_id
     """
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
         qs = TerritoryExitLog.objects.select_related(
-            'employee', 'employee__position', 'task_assignment'
+            'employee', 'employee__position', 'duty_section_assignment'
         )
 
         employee_id = request.query_params.get('employee_id')
@@ -62,9 +62,9 @@ class TerritoryExitLogListView(APIView):
         if date_str:
             qs = qs.filter(exit_time__date=date_str)
 
-        task_assignment_id = request.query_params.get('task_assignment_id')
-        if task_assignment_id:
-            qs = qs.filter(task_assignment_id=task_assignment_id)
+        duty_section_assignment_id = request.query_params.get('duty_section_assignment_id')
+        if duty_section_assignment_id:
+            qs = qs.filter(duty_section_assignment_id=duty_section_assignment_id)
 
         serializer = TerritoryExitLogSerializer(qs, many=True)
         return Response({'success': True, 'data': serializer.data})
@@ -80,7 +80,7 @@ class TerritoryExitLogDetailView(APIView):
     def get_object(self, pk):
         try:
             return TerritoryExitLog.objects.select_related(
-                'employee', 'employee__position', 'task_assignment'
+                'employee', 'employee__position', 'duty_section_assignment'
             ).get(pk=pk)
         except TerritoryExitLog.DoesNotExist:
             return None
@@ -97,7 +97,7 @@ class TerritoryExitLogDetailView(APIView):
         if not log:
             return Response({'detail': 'Topilmadi.'}, status=status.HTTP_404_NOT_FOUND)
 
-        serializer = TerritoryExitLogReturnSerializer(data=request.data)
+        serializer = TerritoryExitLogReturnSerializer(data=request.data)  # noqa: patch endpoint
         serializer.is_valid(raise_exception=True)
 
         log.return_time = serializer.validated_data.get('return_time') or timezone.now()

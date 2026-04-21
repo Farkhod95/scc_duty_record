@@ -588,9 +588,9 @@ class TerritoryExitLog(BaseModel):
         User, on_delete=models.CASCADE,
         related_name='territory_exit_logs', help_text=_("Hududni tark etgan xodim")
     )
-    task_assignment = models.ForeignKey(
-        TaskAssignment, on_delete=models.SET_NULL, null=True, blank=True,
-        related_name='territory_exit_logs', help_text=_("Bog'liq vazifa tayinlanishi (ixtiyoriy)")
+    duty_section_assignment = models.ForeignKey(
+        DutySectionAssignment, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='territory_exit_logs', help_text=_("Bog'liq navbatchilik tayinlanishi (ixtiyoriy)")
     )
     reason = models.TextField(
         _('Reason'), help_text=_("Hududni tark etish sababi")
