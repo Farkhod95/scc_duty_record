@@ -573,3 +573,44 @@ class EventAssignment(BaseModel):
 
     def __str__(self):
         return f"Assignment #{self.pk} — {self.event.title}"
+
+
+# ============================================================
+# Hudud tark etish jurnali (Tablet API)
+# ============================================================
+
+class TerritoryExitLog(BaseModel):
+    """
+    Xodim o'z hududini vaqtincha tark etganda sababini qayd etadi.
+    Tablet orqali yuboriladi; admin panelda ro'yxat sifatida ko'rinadi.
+    """
+    employee = models.ForeignKey(
+        User, on_delete=models.CASCADE,
+        related_name='territory_exit_logs', help_text=_("Hududni tark etgan xodim")
+    )
+    task_assignment = models.ForeignKey(
+        TaskAssignment, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='territory_exit_logs', help_text=_("Bog'liq vazifa tayinlanishi (ixtiyoriy)")
+    )
+    reason = models.TextField(
+        _('Reason'), help_text=_("Hududni tark etish sababi")
+    )
+    exit_time = models.DateTimeField(
+        _('Exit time'), help_text=_("Hududni tark etish vaqti")
+    )
+    return_time = models.DateTimeField(
+        _('Return time'), null=True, blank=True,
+        help_text=_("Hududga qaytish vaqti (keyinchalik to'ldiriladi)")
+    )
+
+    class Meta:
+        verbose_name = _('Territory exit log')
+        verbose_name_plural = _('Territory exit logs')
+        ordering = ['-exit_time']
+        indexes = [
+            models.Index(fields=['employee', 'exit_time']),
+            models.Index(fields=['exit_time']),
+        ]
+
+    def __str__(self):
+        return f"{self.employee.get_full_name()} — {self.exit_time:%Y-%m-%d %H:%M}"

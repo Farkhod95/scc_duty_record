@@ -2,6 +2,7 @@ from django.urls import path, re_path
 
 from monitoring.views import (
     MapFiltersView, MapLiveView, MapHistoryView, MapZonesView,
+    TerritoryExitLogCreateView, TerritoryExitLogListView, TerritoryExitLogDetailView,
     MainDutyView, MainDutyDetailView,
     MainDutySendForApprovalView, MainDutyApproveView, MainDutyRejectView,
     TaskView, TaskDetailView,
@@ -102,4 +103,9 @@ urlpatterns = [
     # ── Etap 6: PDF ─────────────────────────────────────────────────────────
     path('duty-days/<int:pk>/pdf/', DutyDayPdfView.as_view(), name='duty_day_pdf'),
     path('events/<int:pk>/pdf/', EventPdfView.as_view(), name='event_pdf'),
+
+    # ── Hudud tark etish jurnali (Tablet + Admin) ────────────────────────────
+    path('territory-exit/', TerritoryExitLogCreateView.as_view(), name='territory_exit_create'),
+    path('territory-exit/list/', TerritoryExitLogListView.as_view(), name='territory_exit_list'),
+    path('territory-exit/<int:pk>/', TerritoryExitLogDetailView.as_view(), name='territory_exit_detail'),
 ]

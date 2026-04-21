@@ -28,3 +28,8 @@ from monitoring.views.event import (
     EventPdfView,
 )
 from monitoring.views.map import MapFiltersView, MapLiveView, MapHistoryView, MapZonesView
+from monitoring.views.territory_exit import (
+    TerritoryExitLogCreateView,
+    TerritoryExitLogListView,
+    TerritoryExitLogDetailView,
+)
