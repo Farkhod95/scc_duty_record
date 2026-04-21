@@ -3,6 +3,7 @@ from django.urls import path, re_path
 from monitoring.views import (
     MapFiltersView, MapLiveView, MapHistoryView, MapZonesView,
     TerritoryExitLogCreateView, TerritoryExitLogListView, TerritoryExitLogDetailView,
+    AdminDashboardView,
     MainDutyView, MainDutyDetailView,
     MainDutySendForApprovalView, MainDutyApproveView, MainDutyRejectView,
     TaskView, TaskDetailView,
@@ -108,4 +109,7 @@ urlpatterns = [
     path('territory-exit/', TerritoryExitLogCreateView.as_view(), name='territory_exit_create'),
     path('territory-exit/list/', TerritoryExitLogListView.as_view(), name='territory_exit_list'),
     path('territory-exit/<int:pk>/', TerritoryExitLogDetailView.as_view(), name='territory_exit_detail'),
+
+    # ── Admin dashboard ──────────────────────────────────────────────────────
+    path('admin-dashboard/', AdminDashboardView.as_view(), name='admin_dashboard'),
 ]

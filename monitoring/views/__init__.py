@@ -33,3 +33,4 @@ from monitoring.views.territory_exit import (
     TerritoryExitLogListView,
     TerritoryExitLogDetailView,
 )
+from monitoring.views.admin_dashboard import AdminDashboardView
