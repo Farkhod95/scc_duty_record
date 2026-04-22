@@ -3,6 +3,20 @@ from rest_framework import serializers
 from monitoring.models import Incident112, Incident112Notification
 
 
+class FlexibleIntegerField(serializers.IntegerField):
+    """112 tizim ba'zan float yoki string yuboradi — int ga aylantiradi."""
+
+    def to_internal_value(self, data):
+        if data is None:
+            if self.allow_null:
+                return None
+            self.fail('null')
+        try:
+            return int(float(str(data)))
+        except (ValueError, TypeError):
+            self.fail('invalid')
+
+
 class GeoInfoSerializer(serializers.Serializer):
     lat = serializers.FloatField(allow_null=True, required=False)
     lon = serializers.FloatField(allow_null=True, required=False)
@@ -10,41 +24,41 @@ class GeoInfoSerializer(serializers.Serializer):
 
 class Incident112CreateSerializer(serializers.Serializer):
     card112Number = serializers.CharField()
-    dtCreate112 = serializers.IntegerField()
+    dtCreate112 = FlexibleIntegerField()
     strCreator112 = serializers.CharField(allow_null=True, allow_blank=True, required=False, default=None)
     strCdPN = serializers.CharField()
     fabula = serializers.CharField(allow_null=True, allow_blank=True, required=False, default=None)
-    nCallTypeId = serializers.IntegerField()
-    nIncidentTypeId = serializers.IntegerField()
+    nCallTypeId = FlexibleIntegerField()
+    nIncidentTypeId = FlexibleIntegerField()
     strIncidentDescription = serializers.CharField()
-    nCountryAreaId = serializers.IntegerField(allow_null=True, required=False, default=None)
+    nCountryAreaId = FlexibleIntegerField(allow_null=True, required=False, default=None)
     nDistrictID = serializers.CharField(allow_null=True, allow_blank=True, required=False, default=None)
-    nCityID = serializers.IntegerField(allow_null=True, required=False, default=None)
-    nLocalDistrictId = serializers.IntegerField(allow_null=True, required=False, default=None)
-    nMahallyaId = serializers.IntegerField(allow_null=True, required=False, default=None)
+    nCityID = FlexibleIntegerField(allow_null=True, required=False, default=None)
+    nLocalDistrictId = FlexibleIntegerField(allow_null=True, required=False, default=None)
+    nMahallyaId = FlexibleIntegerField(allow_null=True, required=False, default=None)
     nStreetID = serializers.CharField(allow_null=True, allow_blank=True, required=False, default=None)
     strBuilding = serializers.CharField(allow_null=True, allow_blank=True, required=False, default=None)
     strEntrance = serializers.CharField(allow_null=True, allow_blank=True, required=False, default=None)
-    nFloor = serializers.IntegerField(allow_null=True, required=False, default=None)
+    nFloor = FlexibleIntegerField(allow_null=True, required=False, default=None)
     geoInfo = GeoInfoSerializer(allow_null=True, required=False, default=None)
     declarantInfo = serializers.DictField(allow_null=True, required=False, default=None)
     victimInfo = serializers.DictField(allow_null=True, required=False, default=None)
-    lControl = serializers.IntegerField(allow_null=True, required=False, default=None)
+    lControl = FlexibleIntegerField(allow_null=True, required=False, default=None)
     strFlat = serializers.CharField(allow_null=True, allow_blank=True, required=False, default=None)
     strBlock = serializers.CharField(allow_null=True, allow_blank=True, required=False, default=None)
     strNote = serializers.CharField(allow_null=True, allow_blank=True, required=False, default=None)
-    dtTimeFrom = serializers.IntegerField(allow_null=True, required=False, default=None)
-    dtTimeTo = serializers.IntegerField(allow_null=True, required=False, default=None)
-    nAddendumId = serializers.IntegerField(allow_null=True, required=False, default=None)
-    nDeptId = serializers.IntegerField(allow_null=True, required=False, default=None)
-    nPriorityId = serializers.IntegerField(allow_null=True, required=False, default=None)
+    dtTimeFrom = FlexibleIntegerField(allow_null=True, required=False, default=None)
+    dtTimeTo = FlexibleIntegerField(allow_null=True, required=False, default=None)
+    nAddendumId = FlexibleIntegerField(allow_null=True, required=False, default=None)
+    nDeptId = FlexibleIntegerField(allow_null=True, required=False, default=None)
+    nPriorityId = FlexibleIntegerField(allow_null=True, required=False, default=None)
     lHospitalApplication = serializers.BooleanField(allow_null=True, required=False, default=None)
-    firstCardId = serializers.IntegerField(allow_null=True, required=False, default=None)
+    firstCardId = FlexibleIntegerField(allow_null=True, required=False, default=None)
     trafficCollision = serializers.DictField(allow_null=True, required=False, default=None)
     hospitalApplication = serializers.DictField(allow_null=True, required=False, default=None)
     newCard = serializers.BooleanField(allow_null=True, required=False, default=None)
-    nAppealTypeId = serializers.IntegerField(allow_null=True, required=False, default=None)
-    cardCreationAreaId = serializers.IntegerField(allow_null=True, required=False, default=None)
+    nAppealTypeId = FlexibleIntegerField(allow_null=True, required=False, default=None)
+    cardCreationAreaId = FlexibleIntegerField(allow_null=True, required=False, default=None)
     callID112 = serializers.CharField(allow_null=True, allow_blank=True, required=False, default=None)
 
     def save(self, raw_payload):
