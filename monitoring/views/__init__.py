@@ -34,3 +34,10 @@ from monitoring.views.territory_exit import (
     TerritoryExitLogDetailView,
 )
 from monitoring.views.admin_dashboard import AdminDashboardView
+from monitoring.views.incident112 import (
+    Incident112ReceiveView,
+    Incident112AdminListView,
+    Incident112AdminDetailView,
+    TabletIncidentListView,
+    TabletIncidentReadView,
+)

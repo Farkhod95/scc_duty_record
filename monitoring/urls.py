@@ -4,6 +4,9 @@ from monitoring.views import (
     MapFiltersView, MapLiveView, MapHistoryView, MapZonesView,
     TerritoryExitLogCreateView, TerritoryExitLogListView, TerritoryExitLogDetailView,
     AdminDashboardView,
+    Incident112ReceiveView,
+    Incident112AdminListView, Incident112AdminDetailView,
+    TabletIncidentListView, TabletIncidentReadView,
     MainDutyView, MainDutyDetailView,
     MainDutySendForApprovalView, MainDutyApproveView, MainDutyRejectView,
     TaskView, TaskDetailView,
@@ -112,4 +115,13 @@ urlpatterns = [
 
     # ── Admin dashboard ──────────────────────────────────────────────────────
     path('admin-dashboard/', AdminDashboardView.as_view(), name='admin_dashboard'),
+
+    # ── 112 Hodisalar ────────────────────────────────────────────────────────
+    path('incidents/112/receive/', Incident112ReceiveView.as_view(), name='incident_112_receive'),
+    path('incidents/112/', Incident112AdminListView.as_view(), name='incident_112_list'),
+    path('incidents/112/<int:pk>/', Incident112AdminDetailView.as_view(), name='incident_112_detail'),
+
+    # Tablet — o'z bildirishnomalar
+    path('tablet/incidents/', TabletIncidentListView.as_view(), name='tablet_incident_list'),
+    path('tablet/incidents/<int:pk>/read/', TabletIncidentReadView.as_view(), name='tablet_incident_read'),
 ]

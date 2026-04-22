@@ -286,6 +286,10 @@ TABLET_LOCATION_INTERVAL         = env.int('TABLET_LOCATION_INTERVAL', default=3
 # LocationService gRPC (Go mikroservis)
 GRPC_LOCATION_SERVICE_ADDR = env('GRPC_LOCATION_SERVICE_ADDR', default='192.168.168.18:50051')
 
+# 112 hodisa tizimi
+INCIDENT_112_API_KEY        = env('INCIDENT_112_API_KEY', default='')
+INCIDENT_NOTIFY_RADIUS_KM   = env.float('INCIDENT_NOTIFY_RADIUS_KM', default=3.0)
+
 # Planshet RSA-OAEP autentifikatsiyasi
 # Kalit juftini yaratish: python manage.py generate_tablet_keys
 TABLET_RSA_PRIVATE_KEY = env('TABLET_RSA_PRIVATE_KEY', default='').replace('\\n', '\n')

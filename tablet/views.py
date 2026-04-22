@@ -45,7 +45,7 @@ class TabletMyDutyView(APIView):
 
         sections = DutySection.objects.filter(
             assignments__employees=request.user,
-            duty_day__status__in=['SUBMITTED', 'COLLECTED', 'APPROVED'],
+            duty_day__status='APPROVED',
         ).select_related(
             'duty_day__organization',
         ).prefetch_related(
@@ -78,7 +78,7 @@ class TabletTodayDutyView(APIView):
         sections = DutySection.objects.filter(
             assignments__employees=request.user,
             duty_day__duty_date=today,
-            duty_day__status__in=['SUBMITTED', 'COLLECTED', 'APPROVED'],
+            duty_day__status='APPROVED',
         ).select_related(
             'duty_day__organization',
         ).prefetch_related(

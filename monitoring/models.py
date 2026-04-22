@@ -614,3 +614,120 @@ class TerritoryExitLog(BaseModel):
 
     def __str__(self):
         return f"{self.employee.get_full_name()} — {self.exit_time:%Y-%m-%d %H:%M}"
+
+
+# ============================================================
+# 112 Hodisa (Incident) — tashqi tizimdan keladi
+# ============================================================
+
+class Incident112(BaseModel):
+    """
+    112 xizmatidan kelgan hodisa kartasi.
+    API key orqali POST qilinadi; barcha maydonlar saqlangan.
+    """
+    card_number = models.CharField(
+        _('Card number'), max_length=100, unique=True,
+        help_text=_("112 karta raqami (card112Number)")
+    )
+    dt_create = models.BigIntegerField(
+        _('Created timestamp'), help_text=_("Unix timestamp (dtCreate112)")
+    )
+    operator = models.CharField(
+        _('Operator'), max_length=255, null=True, blank=True,
+        help_text=_("Kartani yaratgan operator (strCreator112)")
+    )
+    called_phone = models.CharField(
+        _('Called phone'), max_length=50,
+        help_text=_("Murojaat qilingan telefon (strCdPN)")
+    )
+    fabula = models.TextField(_('Fabula'), null=True, blank=True)
+    call_type_id = models.IntegerField(_('Call type ID'), help_text=_("nCallTypeId"))
+    incident_type_id = models.IntegerField(_('Incident type ID'), help_text=_("nIncidentTypeId"))
+    incident_description = models.TextField(_('Incident description'), help_text=_("strIncidentDescription"))
+
+    # Manzil ID lari
+    country_area_id = models.IntegerField(null=True, blank=True)
+    district_id_112 = models.CharField(max_length=50, null=True, blank=True)
+    city_id = models.IntegerField(null=True, blank=True)
+    local_district_id = models.IntegerField(null=True, blank=True)
+    mahallya_id = models.IntegerField(null=True, blank=True)
+    street_id = models.CharField(max_length=50, null=True, blank=True)
+    building = models.CharField(max_length=100, null=True, blank=True)
+    entrance = models.CharField(max_length=50, null=True, blank=True)
+    floor = models.IntegerField(null=True, blank=True)
+    flat = models.CharField(max_length=50, null=True, blank=True)
+    block = models.CharField(max_length=50, null=True, blank=True)
+    note = models.TextField(null=True, blank=True)
+
+    # Hodisa koordinatalari
+    latitude = models.FloatField(_('Latitude'), null=True, blank=True)
+    longitude = models.FloatField(_('Longitude'), null=True, blank=True)
+
+    # Qo'shimcha maydonlar
+    l_control = models.IntegerField(null=True, blank=True)
+    dt_time_from = models.BigIntegerField(null=True, blank=True)
+    dt_time_to = models.BigIntegerField(null=True, blank=True)
+    addendum_id = models.IntegerField(null=True, blank=True)
+    dept_id = models.IntegerField(null=True, blank=True)
+    priority_id = models.IntegerField(null=True, blank=True)
+    l_hospital_application = models.BooleanField(null=True, blank=True)
+    first_card_id = models.IntegerField(null=True, blank=True)
+    new_card = models.BooleanField(null=True, blank=True)
+    appeal_type_id = models.IntegerField(null=True, blank=True)
+    card_creation_area_id = models.IntegerField(null=True, blank=True)
+    call_id_112 = models.CharField(max_length=100, null=True, blank=True)
+
+    # JSON nested obyektlar
+    declarant_info = models.JSONField(null=True, blank=True, help_text=_("declarantInfo"))
+    victim_info = models.JSONField(null=True, blank=True, help_text=_("victimInfo"))
+    traffic_collision = models.JSONField(null=True, blank=True, help_text=_("trafficCollision"))
+    hospital_application_data = models.JSONField(null=True, blank=True, help_text=_("hospitalApplication"))
+
+    # To'liq payload arxivi
+    raw_payload = models.JSONField(help_text=_("Tashqi tizimdan kelgan to'liq JSON"))
+
+    class Meta:
+        verbose_name = _('Incident 112')
+        verbose_name_plural = _('Incidents 112')
+        ordering = ['-created_time']
+        indexes = [
+            models.Index(fields=['card_number']),
+            models.Index(fields=['incident_type_id']),
+            models.Index(fields=['latitude', 'longitude']),
+            models.Index(fields=['created_time']),
+        ]
+
+    def __str__(self):
+        return f"112-{self.card_number} ({self.incident_description[:50]})"
+
+
+class Incident112Notification(models.Model):
+    """Qaysi xodimga qaysi hodisa haqida xabar yuborildi."""
+    incident = models.ForeignKey(
+        Incident112, on_delete=models.CASCADE,
+        related_name='notifications', help_text=_("Qaysi hodisa")
+    )
+    employee = models.ForeignKey(
+        User, on_delete=models.CASCADE,
+        related_name='incident_notifications', help_text=_("Xabar yuborilgan xodim")
+    )
+    distance_km = models.FloatField(
+        _('Distance km'), null=True, blank=True,
+        help_text=_("Xodimdan hodisa masofasi (km)")
+    )
+    sent_at = models.DateTimeField(auto_now_add=True)
+    is_read = models.BooleanField(default=False)
+    read_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        verbose_name = _('Incident notification')
+        verbose_name_plural = _('Incident notifications')
+        unique_together = [['incident', 'employee']]
+        ordering = ['-sent_at']
+        indexes = [
+            models.Index(fields=['employee', 'is_read']),
+            models.Index(fields=['sent_at']),
+        ]
+
+    def __str__(self):
+        return f"{self.employee.get_full_name()} ← {self.incident.card_number}"
