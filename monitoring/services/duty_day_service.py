@@ -101,6 +101,11 @@ def approve_duty_day(duty_day, approved_by):
     duty_day.updated_by = approved_by
     duty_day.save(update_fields=['status', 'approved_by', 'approved_at', 'updated_by'])
 
+    # Har bir section uchun gRPC AlarmStream tinglash taskini ishga tushirish
+    from monitoring.tasks import listen_alarm_stream
+    for section in duty_day.sections.all():
+        listen_alarm_stream.delay(section.id)
+
 
 def reject_duty_day(duty_day, rejected_by, reason, stage):
     """

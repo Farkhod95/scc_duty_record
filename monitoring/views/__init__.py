@@ -40,4 +40,5 @@ from monitoring.views.incident112 import (
     Incident112AdminDetailView,
     TabletIncidentListView,
     TabletIncidentReadView,
+    AlarmLogListView,
 )

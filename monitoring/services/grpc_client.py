@@ -176,6 +176,24 @@ class LocationServiceClient:
         """
         return self._call('DutyInfo', pb2.DutyInfoRequest(section_id=section_id))
 
+    def alarm_stream(self, section_id: int):
+        """
+        AlarmStream — section uchun alarm voqealarini stream sifatida qaytaradi.
+        Qaytaradi: AlarmEvent iterator yoki None (ulanish yo'q bo'lsa).
+        Bu blocking call — for loop bilan ishlatiladi.
+        """
+        stub = self._get_stub()
+        if stub is None:
+            return None
+        try:
+            return stub.AlarmStream(
+                pb2.AlarmRequest(section_id=section_id),
+                timeout=3600,  # 1 soat max, keyin qayta ulanadi
+            )
+        except Exception as exc:
+            logger.warning("gRPC AlarmStream(section=%s) xato: %s", section_id, exc)
+            return None
+
     # ── Lokatsiya (planshetdan GPS) ──────────────────────────────
 
     def send_location(self, pinfl_hash: str, latitude: float, longitude: float,

@@ -5,7 +5,7 @@ from rest_framework.permissions import IsAuthenticated, BasePermission
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from monitoring.models import Incident112, Incident112Notification
+from monitoring.models import Incident112, Incident112Notification, AlarmLog
 from monitoring.serializers.incident112 import (
     Incident112CreateSerializer,
     Incident112ListSerializer,
@@ -110,6 +110,51 @@ class TabletIncidentListView(APIView):
 
         serializer = Incident112NotificationSerializer(qs[:100], many=True)
         return Response({'count': qs.count(), 'results': serializer.data})
+
+
+class AlarmLogListView(APIView):
+    """
+    GET /api/v1/alarms/
+    Filter: ?section_id=  ?alarm_type=  ?date=YYYY-MM-DD  ?employee_id=
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        qs = AlarmLog.objects.select_related(
+            'duty_section__duty_day__organization',
+            'employee',
+        ).order_by('-received_at')
+
+        if v := request.query_params.get('section_id'):
+            qs = qs.filter(duty_section_id=v)
+        if v := request.query_params.get('alarm_type'):
+            qs = qs.filter(alarm_type=v)
+        if v := request.query_params.get('date'):
+            qs = qs.filter(received_at__date=v)
+        if v := request.query_params.get('employee_id'):
+            qs = qs.filter(employee_id=v)
+
+        data = [
+            {
+                'id': log.id,
+                'section_id': log.duty_section_id,
+                'section_name': log.duty_section.name,
+                'organization': log.duty_section.duty_day.organization.name,
+                'employee_id': log.employee_id,
+                'employee_name': log.employee.get_full_name() if log.employee else None,
+                'alarm_type': log.alarm_type,
+                'paligon_id': log.paligon_id,
+                'point_id': log.point_id,
+                'latitude': log.latitude,
+                'longitude': log.longitude,
+                'message': log.message,
+                'pinfl_hash': log.pinfl_hash,
+                'plate_number': log.plate_number,
+                'received_at': log.received_at,
+            }
+            for log in qs[:500]
+        ]
+        return Response({'count': qs.count(), 'results': data})
 
 
 class TabletIncidentReadView(APIView):

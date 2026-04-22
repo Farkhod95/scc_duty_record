@@ -7,6 +7,7 @@ from monitoring.views import (
     Incident112ReceiveView,
     Incident112AdminListView, Incident112AdminDetailView,
     TabletIncidentListView, TabletIncidentReadView,
+    AlarmLogListView,
     MainDutyView, MainDutyDetailView,
     MainDutySendForApprovalView, MainDutyApproveView, MainDutyRejectView,
     TaskView, TaskDetailView,
@@ -124,4 +125,7 @@ urlpatterns = [
     # Tablet — o'z bildirishnomalar
     path('tablet/incidents/', TabletIncidentListView.as_view(), name='tablet_incident_list'),
     path('tablet/incidents/<int:pk>/read/', TabletIncidentReadView.as_view(), name='tablet_incident_read'),
+
+    # ── Alarm log (admin) ────────────────────────────────────────────────────
+    path('alarms/', AlarmLogListView.as_view(), name='alarm_log_list'),
 ]

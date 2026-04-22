@@ -731,3 +731,49 @@ class Incident112Notification(models.Model):
 
     def __str__(self):
         return f"{self.employee.get_full_name()} ← {self.incident.card_number}"
+
+
+# ============================================================
+# Alarm log — gRPC AlarmStream voqealari
+# ============================================================
+
+class AlarmLog(models.Model):
+    """
+    LocationService dan kelgan alarm voqeasi.
+    Xodim yoki transport hududdan chiqqanda/kirganda yoziladi.
+    """
+    duty_section = models.ForeignKey(
+        DutySection, on_delete=models.CASCADE,
+        related_name='alarm_logs', help_text=_("Qaysi navbatchilik bosqichi")
+    )
+    employee = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='alarm_logs', help_text=_("Xodim (pinfl_hash orqali topilsa)")
+    )
+    alarm_type = models.CharField(
+        _('Alarm type'), max_length=100,
+        help_text=_("Alarm turi (out_of_zone, at_point, ...)")
+    )
+    paligon_id = models.IntegerField(null=True, blank=True)
+    point_id = models.IntegerField(null=True, blank=True)
+    latitude = models.FloatField(null=True, blank=True)
+    longitude = models.FloatField(null=True, blank=True)
+    message = models.TextField(null=True, blank=True)
+    pinfl_hash = models.CharField(max_length=64, null=True, blank=True)
+    plate_number = models.CharField(max_length=20, null=True, blank=True)
+    event_timestamp = models.BigIntegerField(null=True, blank=True)
+    received_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = _('Alarm log')
+        verbose_name_plural = _('Alarm logs')
+        ordering = ['-received_at']
+        indexes = [
+            models.Index(fields=['duty_section', 'received_at']),
+            models.Index(fields=['employee', 'received_at']),
+            models.Index(fields=['alarm_type']),
+        ]
+
+    def __str__(self):
+        subj = self.pinfl_hash or self.plate_number or '?'
+        return f"[{self.alarm_type}] {subj} — {self.received_at:%H:%M:%S}"

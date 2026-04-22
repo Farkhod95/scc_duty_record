@@ -1,8 +1,11 @@
+import logging
 from math import radians, sin, cos, sqrt, asin
 
 from celery import shared_task
 from django.conf import settings
 from django.utils import timezone
+
+logger = logging.getLogger(__name__)
 
 
 def _haversine_km(lat1, lon1, lat2, lon2):
@@ -104,3 +107,107 @@ def notify_nearby_employees(self, incident_id: int):
                 'data': {**incident_payload, 'distance_km': dist_km},
             },
         )
+
+
+@shared_task(bind=True, max_retries=None, default_retry_delay=15)
+def listen_alarm_stream(self, section_id: int):
+    """
+    DutySection uchun gRPC AlarmStream ni tinglaydi.
+    Har bir AlarmEvent:
+      - AlarmLog ga yoziladi
+      - Tabletga (xodimga) WebSocket yuboriladi
+      - Adminga (tumanga) WebSocket yuboriladi
+
+    DutyDay APPROVED bo'lganda ishga tushiriladi.
+    Stream uzilsa — 15 soniyadan keyin qayta urinadi.
+    """
+    from asgiref.sync import async_to_sync
+    from channels.layers import get_channel_layer
+    from django.contrib.auth import get_user_model
+    from monitoring.models import DutySection, AlarmLog
+    from monitoring.services.grpc_client import grpc_location
+
+    User = get_user_model()
+
+    try:
+        section = DutySection.objects.select_related(
+            'duty_day__organization__district'
+        ).get(pk=section_id)
+    except DutySection.DoesNotExist:
+        logger.warning("listen_alarm_stream: section_id=%s topilmadi", section_id)
+        return
+
+    # DutyDay artiq APPROVED emas ise toxtatamiz
+    if section.duty_day.status != 'APPROVED':
+        logger.info("listen_alarm_stream: section=%s duty APPROVED emas, toxtatildi", section_id)
+        return
+
+    stream = grpc_location.alarm_stream(section_id)
+    if stream is None:
+        logger.warning("listen_alarm_stream: section=%s stream ochilmadi, retry", section_id)
+        raise self.retry()
+
+    channel_layer = get_channel_layer()
+    district = section.duty_day.organization.district
+
+    logger.info("listen_alarm_stream: section=%s stream boshlandi", section_id)
+
+    try:
+        for event in stream:
+            # 1. Xodimni topish
+            employee = None
+            if event.pinfl_hash:
+                employee = User.objects.filter(pinfl_hash=event.pinfl_hash).first()
+
+            # 2. AlarmLog yozish
+            AlarmLog.objects.create(
+                duty_section_id=section_id,
+                employee=employee,
+                alarm_type=event.type,
+                paligon_id=event.paligon_id or None,
+                point_id=event.point_id or None,
+                latitude=event.latitude or None,
+                longitude=event.longitude or None,
+                message=event.message or None,
+                pinfl_hash=event.pinfl_hash or None,
+                plate_number=event.plate_number or None,
+                event_timestamp=event.timestamp or None,
+            )
+
+            # 3. WebSocket payload
+            payload = {
+                'type': 'alarm',
+                'section_id': section_id,
+                'alarm_type': event.type,
+                'paligon_id': event.paligon_id,
+                'point_id': event.point_id,
+                'latitude': event.latitude,
+                'longitude': event.longitude,
+                'message': event.message,
+                'pinfl_hash': event.pinfl_hash or None,
+                'plate_number': event.plate_number or None,
+                'timestamp': event.timestamp,
+                'employee_name': employee.get_full_name() if employee else None,
+            }
+
+            # 4. Tabletga (xodimga) yuborish
+            if employee:
+                async_to_sync(channel_layer.group_send)(
+                    f'incident_user_{employee.id}',
+                    {'type': 'incident_notification', 'data': payload},
+                )
+
+            # 5. Adminga (tuman bo'yicha) yuborish
+            district_group = f'alarms_district_{district.id}' if district else 'alarms_all'
+            async_to_sync(channel_layer.group_send)(
+                district_group,
+                {'type': 'alarm_event', 'data': payload},
+            )
+            async_to_sync(channel_layer.group_send)(
+                'alarms_all',
+                {'type': 'alarm_event', 'data': payload},
+            )
+
+    except Exception as exc:
+        logger.warning("listen_alarm_stream: section=%s stream xato: %s — retry", section_id, exc)
+        raise self.retry(exc=exc)
