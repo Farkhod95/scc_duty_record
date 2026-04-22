@@ -14,6 +14,8 @@ services:
       - db
 #    entrypoint: ["./wait-for-it.sh", "db:5432", "--"]
     command: ["daphne", "-b", "0.0.0.0", "-p", "8000", "main.asgi:application"]
+    networks:
+      - app_network
 
   frontend:
     build:
@@ -25,6 +27,8 @@ services:
       - "8080:80"
     depends_on:
       - duty_record
+    networks:
+      - app_network
 
   db:
     image: postgis/postgis:15-3.3
@@ -38,6 +42,8 @@ services:
       POSTGRES_PASSWORD: duty_record_password
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    networks:
+      - app_network
 
   redis:
     image: redis
@@ -45,6 +51,8 @@ services:
     restart: always
     ports:
       - "6379:6379"
+    networks:
+      - app_network
 
   celery:
     build: .
@@ -54,6 +62,8 @@ services:
     depends_on:
       - db
       - redis
+    networks:
+      - app_network
 
   celery-beat:
     build: .
@@ -62,6 +72,8 @@ services:
       - .:/app
     depends_on:
       - redis
+    networks:
+      - app_network
 
   location_service_db:
     image: postgres:16-alpine
@@ -79,6 +91,8 @@ services:
       interval: 5s
       timeout: 3s
       retries: 10
+    networks:
+      - app_network
 
   location_service:
     build: ./LocationService
@@ -96,7 +110,7 @@ services:
     ports:
       - "50051:50051"
     networks:
-      - default
+      - app_network
       - jts-scc_default
 
 volumes:
@@ -107,5 +121,7 @@ volumes:
   locationservice_postgres_data:
 
 networks:
+  app_network:
+    name: duty_record_network
   jts-scc_default:
     external: true
