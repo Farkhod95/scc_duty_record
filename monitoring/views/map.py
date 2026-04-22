@@ -27,6 +27,27 @@ logger = logging.getLogger(__name__)
 
 # ── Ichki yordamchilar ───────────────────────────────────────────
 
+def _calc_is_place(point, visited_point_ids: set, now) -> bool | None:
+    """
+    Nuqtaga xodim borgan-bormaganligini aniqlaydi.
+      None  — nuqta vaqti hali boshlanmagan
+      True  — xodim hozir shu nuqtada (gRPC at_point)
+      False — nuqta vaqti boshlangan yoki o'tgan, lekin xodim bormagan
+    """
+    start = point.start_time
+    end = point.end_time
+
+    # Vaqt solishtirish: start_time/end_time time ob'ekti, now — datetime
+    if start:
+        start_dt = now.replace(hour=start.hour, minute=start.minute, second=0, microsecond=0)
+        if now < start_dt:
+            return None  # hali boshlanmagan
+
+    if point.pk in visited_point_ids:
+        return True
+
+    return False
+
 def _visible_section_qs(user):
     qs = DutySection.objects.select_related(
         'duty_day__organization__district__region',
@@ -335,9 +356,39 @@ class MapZonesView(APIView):
         if active_only:
             qs = qs.filter(start_time__lte=now, end_time__gte=now)
 
+        qs = list(qs)
+
+        from monitoring.services.grpc_client import grpc_location
+        from monitoring.models import AlarmLog
+
+        today = timezone.localdate()
+
+        # Bugungi barcha sectionlar uchun AlarmLog dagi point_id larni bir martada olamiz
+        section_ids = [s.pk for s in qs]
+        alarm_visited: dict[int, set[int]] = {}
+        for row in AlarmLog.objects.filter(
+            duty_section_id__in=section_ids,
+            received_at__date=today,
+            point_id__isnull=False,
+        ).values('duty_section_id', 'point_id'):
+            alarm_visited.setdefault(row['duty_section_id'], set()).add(row['point_id'])
+
         results = []
         for section in qs:
             org = section.duty_day.organization
+
+            # gRPC: hozir nuqtada turgan xodimlar
+            duty_info = grpc_location.duty_info(section.pk)
+            visited_point_ids: set[int] = set()
+            if duty_info:
+                for asgn_info in duty_info.assignments:
+                    for ei in asgn_info.employees:
+                        if ei.at_point and ei.point_id and ei.point_id != -1:
+                            visited_point_ids.add(ei.point_id)
+
+            # AlarmLog: oldin u yerda bo'lib, chiqib ketganlar
+            visited_point_ids |= alarm_visited.get(section.pk, set())
+
             zones = []
             for asgn in section.assignments.all():
                 loc = asgn.location
@@ -358,6 +409,7 @@ class MapZonesView(APIView):
                                 'longitude': float(p.longitude) if p.longitude else None,
                                 'start_time': p.start_time,
                                 'end_time': p.end_time,
+                                'is_place': _calc_is_place(p, visited_point_ids, now),
                             }
                             for p in loc.points.order_by('order')
                         ],
