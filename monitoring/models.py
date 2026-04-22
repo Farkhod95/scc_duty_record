@@ -629,8 +629,9 @@ class Incident112(BaseModel):
         _('Card number'), max_length=100, unique=True,
         help_text=_("112 karta raqami (card112Number)")
     )
-    dt_create = models.BigIntegerField(
-        _('Created timestamp'), help_text=_("Unix timestamp (dtCreate112)")
+    dt_create = models.CharField(
+        _('Created timestamp'), max_length=50, null=True, blank=True,
+        help_text=_("dtCreate112 — sana yoki timestamp string")
     )
     operator = models.CharField(
         _('Operator'), max_length=255, null=True, blank=True,
@@ -665,8 +666,8 @@ class Incident112(BaseModel):
 
     # Qo'shimcha maydonlar
     l_control = models.IntegerField(null=True, blank=True)
-    dt_time_from = models.BigIntegerField(null=True, blank=True)
-    dt_time_to = models.BigIntegerField(null=True, blank=True)
+    dt_time_from = models.CharField(max_length=50, null=True, blank=True)
+    dt_time_to = models.CharField(max_length=50, null=True, blank=True)
     addendum_id = models.IntegerField(null=True, blank=True)
     dept_id = models.IntegerField(null=True, blank=True)
     priority_id = models.IntegerField(null=True, blank=True)

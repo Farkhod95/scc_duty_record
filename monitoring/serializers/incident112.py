@@ -3,107 +3,120 @@ from rest_framework import serializers
 from monitoring.models import Incident112, Incident112Notification
 
 
-class FlexibleIntegerField(serializers.IntegerField):
-    """112 tizim ba'zan float yoki string yuboradi — int ga aylantiradi."""
+def _parse_112_date(val):
+    """'22.04.2026 17:00:38' → string saqlanadi (CharField uchun)."""
+    if not val:
+        return None
+    return str(val)
 
-    def to_internal_value(self, data):
-        if data is None:
-            if self.allow_null:
-                return None
-            self.fail('null')
+
+def _geo_from_payload(geo):
+    """geoInfo: [lat, lon] yoki {lat, lon} yoki null."""
+    if not geo:
+        return None, None
+    if isinstance(geo, (list, tuple)) and len(geo) >= 2:
         try:
-            return int(float(str(data)))
-        except (ValueError, TypeError):
-            self.fail('invalid')
-
-
-class GeoInfoSerializer(serializers.Serializer):
-    lat = serializers.FloatField(allow_null=True, required=False)
-    lon = serializers.FloatField(allow_null=True, required=False)
+            return float(geo[0]), float(geo[1])
+        except (TypeError, ValueError):
+            return None, None
+    if isinstance(geo, dict):
+        try:
+            return float(geo.get('lat') or 0) or None, float(geo.get('lon') or 0) or None
+        except (TypeError, ValueError):
+            return None, None
+    return None, None
 
 
 class Incident112CreateSerializer(serializers.Serializer):
+    """
+    112 tizimdan kelgan payload ni qabul qiladi.
+    Faqat card112Number majburiy — qolgan hamma field ixtiyoriy.
+    """
     card112Number = serializers.CharField()
-    dtCreate112 = FlexibleIntegerField()
-    strCreator112 = serializers.CharField(allow_null=True, allow_blank=True, required=False, default=None)
-    strCdPN = serializers.CharField()
-    fabula = serializers.CharField(allow_null=True, allow_blank=True, required=False, default=None)
-    nCallTypeId = FlexibleIntegerField()
-    nIncidentTypeId = FlexibleIntegerField()
-    strIncidentDescription = serializers.CharField()
-    nCountryAreaId = FlexibleIntegerField(allow_null=True, required=False, default=None)
-    nDistrictID = serializers.CharField(allow_null=True, allow_blank=True, required=False, default=None)
-    nCityID = FlexibleIntegerField(allow_null=True, required=False, default=None)
-    nLocalDistrictId = FlexibleIntegerField(allow_null=True, required=False, default=None)
-    nMahallyaId = FlexibleIntegerField(allow_null=True, required=False, default=None)
-    nStreetID = serializers.CharField(allow_null=True, allow_blank=True, required=False, default=None)
-    strBuilding = serializers.CharField(allow_null=True, allow_blank=True, required=False, default=None)
-    strEntrance = serializers.CharField(allow_null=True, allow_blank=True, required=False, default=None)
-    nFloor = FlexibleIntegerField(allow_null=True, required=False, default=None)
-    geoInfo = GeoInfoSerializer(allow_null=True, required=False, default=None)
-    declarantInfo = serializers.DictField(allow_null=True, required=False, default=None)
-    victimInfo = serializers.DictField(allow_null=True, required=False, default=None)
-    lControl = FlexibleIntegerField(allow_null=True, required=False, default=None)
-    strFlat = serializers.CharField(allow_null=True, allow_blank=True, required=False, default=None)
-    strBlock = serializers.CharField(allow_null=True, allow_blank=True, required=False, default=None)
-    strNote = serializers.CharField(allow_null=True, allow_blank=True, required=False, default=None)
-    dtTimeFrom = FlexibleIntegerField(allow_null=True, required=False, default=None)
-    dtTimeTo = FlexibleIntegerField(allow_null=True, required=False, default=None)
-    nAddendumId = FlexibleIntegerField(allow_null=True, required=False, default=None)
-    nDeptId = FlexibleIntegerField(allow_null=True, required=False, default=None)
-    nPriorityId = FlexibleIntegerField(allow_null=True, required=False, default=None)
-    lHospitalApplication = serializers.BooleanField(allow_null=True, required=False, default=None)
-    firstCardId = FlexibleIntegerField(allow_null=True, required=False, default=None)
-    trafficCollision = serializers.DictField(allow_null=True, required=False, default=None)
-    hospitalApplication = serializers.DictField(allow_null=True, required=False, default=None)
-    newCard = serializers.BooleanField(allow_null=True, required=False, default=None)
-    nAppealTypeId = FlexibleIntegerField(allow_null=True, required=False, default=None)
-    cardCreationAreaId = FlexibleIntegerField(allow_null=True, required=False, default=None)
-    callID112 = serializers.CharField(allow_null=True, allow_blank=True, required=False, default=None)
+
+    def to_internal_value(self, data):
+        if 'card112Number' not in data or not data['card112Number']:
+            raise serializers.ValidationError({'card112Number': 'Bu maydon majburiy.'})
+        return data
 
     def save(self, raw_payload):
         d = self.validated_data
-        geo = d.get('geoInfo') or {}
+
+        lat, lon = _geo_from_payload(d.get('geoInfo'))
+
+        # Declarant info — barcha declarant* fieldlar
+        declarant_info = {
+            k: v for k, v in d.items()
+            if k.startswith('declarant')
+        } or None
+
+        # Victim info — barcha victim* fieldlar
+        victim_info = {
+            k: v for k, v in d.items()
+            if k.startswith('victim')
+        } or None
+
+        # Hospital application — flat fieldlar
+        hospital_info = {
+            k: v for k, v in d.items()
+            if k.startswith('hospitalApplication')
+        } or None
+
+        # Traffic collision — flat fieldlar
+        traffic_info = {
+            k: v for k, v in d.items()
+            if k.startswith('trafficCollision')
+        } or None
+
+        # called_phone: strCdPn yoki strCdPN
+        called_phone = d.get('strCdPn') or d.get('strCdPN') or d.get('strCdPN') or ''
+
+        # priority_id: priorityTypeId yoki nPriorityId
+        priority_id = d.get('priorityTypeId') or d.get('nPriorityId')
+
+        # call_type_id: callId112 yoki nCallTypeId
+        call_type_id = d.get('callId112') or d.get('nCallTypeId') or 0
+
         incident, created = Incident112.objects.update_or_create(
             card_number=d['card112Number'],
             defaults=dict(
-                dt_create=d['dtCreate112'],
+                dt_create=_parse_112_date(d.get('dtCreate112') or d.get('the_date')),
                 operator=d.get('strCreator112'),
-                called_phone=d['strCdPN'],
+                called_phone=called_phone,
                 fabula=d.get('fabula'),
-                call_type_id=d['nCallTypeId'],
-                incident_type_id=d['nIncidentTypeId'],
-                incident_description=d['strIncidentDescription'],
+                call_type_id=call_type_id,
+                incident_type_id=d.get('nIncidentTypeId') or 0,
+                incident_description=d.get('strIncidentDescription') or '',
                 country_area_id=d.get('nCountryAreaId'),
-                district_id_112=d.get('nDistrictID'),
+                district_id_112=str(d.get('nDistrictID') or d.get('cityDistrictId') or ''),
                 city_id=d.get('nCityID'),
-                local_district_id=d.get('nLocalDistrictId'),
+                local_district_id=d.get('nLocalDistrictId') or d.get('cityDistrictId'),
                 mahallya_id=d.get('nMahallyaId'),
-                street_id=d.get('nStreetID'),
+                street_id=str(d.get('nStreetID') or ''),
                 building=d.get('strBuilding'),
                 entrance=d.get('strEntrance'),
                 floor=d.get('nFloor'),
                 flat=d.get('strFlat'),
                 block=d.get('strBlock'),
                 note=d.get('strNote'),
-                latitude=geo.get('lat') if isinstance(geo, dict) else None,
-                longitude=geo.get('lon') if isinstance(geo, dict) else None,
+                latitude=lat,
+                longitude=lon,
                 l_control=d.get('lControl'),
-                dt_time_from=d.get('dtTimeFrom'),
-                dt_time_to=d.get('dtTimeTo'),
+                dt_time_from=_parse_112_date(d.get('dtTimeFrom')),
+                dt_time_to=_parse_112_date(d.get('dtTimeTo')),
                 addendum_id=d.get('nAddendumId'),
                 dept_id=d.get('nDeptId'),
-                priority_id=d.get('nPriorityId'),
+                priority_id=priority_id,
                 l_hospital_application=d.get('lHospitalApplication'),
                 first_card_id=d.get('firstCardId'),
                 new_card=d.get('newCard'),
                 appeal_type_id=d.get('nAppealTypeId'),
                 card_creation_area_id=d.get('cardCreationAreaId'),
-                call_id_112=d.get('callID112'),
-                declarant_info=d.get('declarantInfo'),
-                victim_info=d.get('victimInfo'),
-                traffic_collision=d.get('trafficCollision'),
-                hospital_application_data=d.get('hospitalApplication'),
+                call_id_112=str(d.get('callID112') or d.get('callId112') or ''),
+                declarant_info=declarant_info,
+                victim_info=victim_info,
+                traffic_collision=traffic_info,
+                hospital_application_data=hospital_info,
                 raw_payload=raw_payload,
             ),
         )
