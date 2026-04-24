@@ -684,6 +684,32 @@ class Incident112(BaseModel):
     traffic_collision = models.JSONField(null=True, blank=True, help_text=_("trafficCollision"))
     hospital_application_data = models.JSONField(null=True, blank=True, help_text=_("hospitalApplication"))
 
+    # 112 tizimining o'z ID si va string tavsiflar
+    incident_id_112 = models.IntegerField(
+        _('Incident ID 112'), null=True, blank=True,
+        help_text=_("112 tizimidagi id maydoni")
+    )
+    incident_type_str = models.CharField(
+        _('Incident type (string)'), max_length=255, null=True, blank=True,
+        help_text=_("incidentType — '229 - ЎЗБОШИМЧАЛИК' kabi string")
+    )
+    priority_type_str = models.CharField(
+        _('Priority type (string)'), max_length=255, null=True, blank=True,
+        help_text=_("priorityType — '003 - НАРЯД ЮБОРИШ' kabi string")
+    )
+    appeal_type = models.CharField(
+        _('Appeal type'), max_length=255, null=True, blank=True,
+        help_text=_("appealType — 'Система 112' kabi string")
+    )
+    city_name = models.CharField(
+        _('City name'), max_length=255, null=True, blank=True,
+        help_text=_("nCity — shahar/tuman nomi string")
+    )
+    database_name = models.CharField(
+        _('Database name'), max_length=50, null=True, blank=True,
+        help_text=_("database_name maydoni")
+    )
+
     # To'liq payload arxivi
     raw_payload = models.JSONField(help_text=_("Tashqi tizimdan kelgan to'liq JSON"))
 

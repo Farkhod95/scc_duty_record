@@ -4,6 +4,7 @@ from monitoring.models import (
     MainDuty, Task, TaskAssignment, DutyFile, DailyDutyOfficer,
     DutyDay, DutySection, DutySectionAssignment,
     Event, EventAssignment,
+    Incident112, Incident112Notification, AlarmLog, TerritoryExitLog,
 )
 
 
@@ -110,3 +111,42 @@ class EventAdmin(admin.ModelAdmin):
     inlines = [EventAssignmentInline]
     autocomplete_fields = ('organization',)
     list_select_related = ('organization', 'submitted_by', 'approved_by')
+
+
+# ── 112 Hodisalar ─────────────────────────────────────────────────────────────
+
+class Incident112NotificationInline(admin.TabularInline):
+    model = Incident112Notification
+    extra = 0
+    readonly_fields = ('employee', 'distance_km', 'sent_at', 'is_read', 'read_at')
+    can_delete = False
+
+
+@admin.register(Incident112)
+class Incident112Admin(admin.ModelAdmin):
+    list_display = (
+        'id', 'card_number', 'dt_create', 'called_phone',
+        'incident_type_id', 'priority_id', 'latitude', 'longitude', 'created_time',
+    )
+    list_filter = ('incident_type_id', 'priority_id', 'new_card', 'created_time')
+    search_fields = ('card_number', 'called_phone', 'incident_description', 'note')
+    readonly_fields = ('created_time', 'updated_time', 'raw_payload')
+    inlines = [Incident112NotificationInline]
+
+
+@admin.register(AlarmLog)
+class AlarmLogAdmin(admin.ModelAdmin):
+    list_display = (
+        'id', 'duty_section', 'employee', 'alarm_type',
+        'point_id', 'paligon_id', 'plate_number', 'received_at',
+    )
+    list_filter = ('alarm_type', 'received_at')
+    search_fields = ('pinfl_hash', 'plate_number', 'message')
+    readonly_fields = ('received_at',)
+
+
+@admin.register(TerritoryExitLog)
+class TerritoryExitLogAdmin(admin.ModelAdmin):
+    list_display = ('id', 'employee', 'duty_section_assignment', 'exit_time', 'return_time')
+    list_filter = ('exit_time',)
+    search_fields = ('employee__first_name', 'employee__last_name', 'reason')

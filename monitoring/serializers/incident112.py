@@ -11,7 +11,7 @@ def _parse_112_date(val):
 
 
 def _geo_from_payload(geo):
-    """geoInfo: [lat, lon] yoki {lat, lon} yoki null."""
+    """geoInfo: [lat, lon] | {lat, lon} | "lat,lon" | "[lat,lon]" | null."""
     if not geo:
         return None, None
     if isinstance(geo, (list, tuple)) and len(geo) >= 2:
@@ -21,9 +21,24 @@ def _geo_from_payload(geo):
             return None, None
     if isinstance(geo, dict):
         try:
-            return float(geo.get('lat') or 0) or None, float(geo.get('lon') or 0) or None
+            lat = float(geo.get('lat') or geo.get('latitude') or 0) or None
+            lon = float(geo.get('lon') or geo.get('longitude') or 0) or None
+            return lat, lon
         except (TypeError, ValueError):
             return None, None
+    if isinstance(geo, str):
+        import json as _json
+        try:
+            parsed = _json.loads(geo)
+            return _geo_from_payload(parsed)
+        except (_json.JSONDecodeError, TypeError):
+            pass
+        parts = geo.strip('[] ').split(',')
+        if len(parts) >= 2:
+            try:
+                return float(parts[0].strip()), float(parts[1].strip())
+            except (ValueError, TypeError):
+                pass
     return None, None
 
 
@@ -69,13 +84,13 @@ class Incident112CreateSerializer(serializers.Serializer):
         } or None
 
         # called_phone: strCdPn yoki strCdPN
-        called_phone = d.get('strCdPn') or d.get('strCdPN') or d.get('strCdPN') or ''
+        called_phone = d.get('strCdPn') or d.get('strCdPN') or ''
 
         # priority_id: priorityTypeId yoki nPriorityId
         priority_id = d.get('priorityTypeId') or d.get('nPriorityId')
 
-        # call_type_id: callId112 yoki nCallTypeId
-        call_type_id = d.get('callId112') or d.get('nCallTypeId') or 0
+        # call_type_id: faqat nCallTypeId (callId112 bu call ID, type emas)
+        call_type_id = d.get('nCallTypeId') or 0
 
         incident, created = Incident112.objects.update_or_create(
             card_number=d['card112Number'],
@@ -117,6 +132,13 @@ class Incident112CreateSerializer(serializers.Serializer):
                 victim_info=victim_info,
                 traffic_collision=traffic_info,
                 hospital_application_data=hospital_info,
+                # Yangi fieldlar
+                incident_id_112=d.get('id'),
+                incident_type_str=d.get('incidentType'),
+                priority_type_str=d.get('priorityType'),
+                appeal_type=d.get('appealType'),
+                city_name=d.get('nCity'),
+                database_name=d.get('database_name'),
                 raw_payload=raw_payload,
             ),
         )
