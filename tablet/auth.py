@@ -1,15 +1,19 @@
 import base64
 import logging
+import secrets
 
-from django.conf import settings
+from django.utils import timezone
 from rest_framework import status
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from cryptography.hazmat.primitives.asymmetric import padding
 from cryptography.hazmat.primitives import hashes, serialization
+
+from django.conf import settings
 
 logger = logging.getLogger(__name__)
 
@@ -27,17 +31,7 @@ class TabletAuthView(APIView):
     Body: {"encrypted_pinfl": "<base64 encoded RSA-OAEP ciphertext>"}
     Response: {"access": "...", "refresh": "..."}
 
-    Planshet tomonida shifrlash (Python misol):
-        from cryptography.hazmat.primitives.asymmetric import padding
-        from cryptography.hazmat.primitives import hashes, serialization
-        import base64
-
-        public_key = serialization.load_pem_public_key(public_pem.encode())
-        ciphertext = public_key.encrypt(
-            pinfl.encode(),
-            padding.OAEP(mgf=padding.MGF1(hashes.SHA256()), algorithm=hashes.SHA256(), label=None)
-        )
-        encrypted_pinfl = base64.b64encode(ciphertext).decode()
+    Yangi login bo'lganda eski sessiya o'chiriladi — eski tokenlar yaroqsiz bo'ladi.
     """
     permission_classes = [AllowAny]
 
@@ -84,8 +78,52 @@ class TabletAuthView(APIView):
                 status=status.HTTP_401_UNAUTHORIZED,
             )
 
+        # Yangi sessiya yaratish — eski avtomatik o'chadi (OneToOne)
+        session_key = secrets.token_hex(32)
+        from tablet.models import TabletSession
+        TabletSession.objects.update_or_create(
+            user=user,
+            defaults={'session_key': session_key, 'created_at': timezone.now()},
+        )
+
         refresh = RefreshToken.for_user(user)
+        # Session key tokenga embed qilinadi — bu bilan eski tokenlar yaroqsiz bo'ladi
+        refresh['tablet_session_key'] = session_key
+
+        logger.info("TabletAuth: user=%s yangi sessiya yaratildi", user.id)
         return Response({
             'access': str(refresh.access_token),
             'refresh': str(refresh),
         })
+
+
+class IsTabletSessionValid(IsAuthenticated):
+    """
+    JWT dagi tablet_session_key DB dagi bilan mos kelishini tekshiradi.
+    Yangi login bo'lganda eski tokenlar bu permission orqali rad etiladi.
+    """
+
+    def has_permission(self, request, view):
+        if not super().has_permission(request, view):
+            return False
+
+        auth = request.auth
+        if auth is None:
+            return False
+
+        # JWTAuthentication payload dan session_key olamiz
+        payload = getattr(auth, 'payload', None)
+        if payload is None:
+            # TokenAuthentication kabi boshqa auth — tablet uchun ruxsat yo'q
+            return False
+
+        token_session_key = payload.get('tablet_session_key')
+        if not token_session_key:
+            return False
+
+        from tablet.models import TabletSession
+        try:
+            session = TabletSession.objects.get(user=request.user)
+            return session.session_key == token_session_key
+        except TabletSession.DoesNotExist:
+            return False

@@ -4,21 +4,28 @@ from django.conf import settings
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.generics import get_object_or_404
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from monitoring.models import DutySection
 from monitoring.services.microservice import send_section_started, send_section_ended
+from tablet.auth import IsTabletSessionValid
 from tablet.models import DutyCheckIn
 from tablet.serializers import TabletSectionSerializer, DutyCheckInSerializer, TodaySectionSerializer, TabletMeSerializer
 
 logger = logging.getLogger(__name__)
 
 
+class IncidentPagination(PageNumberPagination):
+    page_size = 20
+    page_size_query_param = 'page_size'
+    max_page_size = 100
+
+
 class TabletMeView(APIView):
     """GET /api/v1/me/ — Kirgan foydalanuvchining o'z ma'lumotlari."""
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsTabletSessionValid]
 
     def get(self, request):
         user = request.user.__class__.objects.select_related(
@@ -37,7 +44,7 @@ class TabletMyDutyView(APIView):
     GET ?type=new  → bugun va keyingi kunlar
     GET ?type=archive → o'tgan kunlar
     """
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsTabletSessionValid]
 
     def get(self, request):
         today = timezone.localdate()
@@ -68,10 +75,9 @@ class TabletMyDutyView(APIView):
 class TabletTodayDutyView(APIView):
     """
     GET /api/v1/duty/today/
-    Bugungi navbatchilik — to'liq ma'lumot:
-    location (boundary_data, mahallalar boundary_data bilan, points), xodimlar, transportlar, check-in holati.
+    Bugungi navbatchilik — to'liq ma'lumot.
     """
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsTabletSessionValid]
 
     def get(self, request):
         today = timezone.localdate()
@@ -94,7 +100,7 @@ class TabletTodayDutyView(APIView):
 
 class TabletDutyStartView(APIView):
     """POST — navbatchilikni boshlash."""
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsTabletSessionValid]
 
     def post(self, request, section_id):
         section = get_object_or_404(
@@ -129,7 +135,7 @@ class TabletDutyStartView(APIView):
 
 class TabletDutyEndView(APIView):
     """POST — navbatchilikni tugatish."""
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsTabletSessionValid]
 
     def post(self, request, section_id):
         checkin = get_object_or_404(
@@ -146,16 +152,8 @@ class TabletDutyEndView(APIView):
 
 
 class TabletConfigView(APIView):
-    """
-    GET /api/v1/config/
-    Planshet ilovasi uchun sozlamalar.
-
-    Response:
-    {
-        "location_interval": 30   // GPS yuborish intervali (soniya)
-    }
-    """
-    permission_classes = [IsAuthenticated]
+    """GET /api/v1/config/ — Planshet sozlamalari."""
+    permission_classes = [IsTabletSessionValid]
 
     def get(self, request):
         return Response({
@@ -164,13 +162,8 @@ class TabletConfigView(APIView):
 
 
 class TabletLocationView(APIView):
-    """
-    POST /api/v1/location/
-    Planshet joylashuvini qabul qilib mikroservicega yuboradi.
-
-    Body: {"latitude": 41.3111, "longitude": 69.2797, "accuracy": 5.0, "timestamp": 1711350000000}
-    """
-    permission_classes = [IsAuthenticated]
+    """POST /api/v1/location/ — GPS joylashuvni yuborish."""
+    permission_classes = [IsTabletSessionValid]
 
     def post(self, request):
         latitude = request.data.get('latitude')

@@ -6,6 +6,26 @@ from restapp.models import BaseModel
 User = get_user_model()
 
 
+class TabletSession(models.Model):
+    """
+    Har bir user uchun bitta aktiv planshet sessiyasi.
+    Yangi login bo'lganda eski sessiya o'chiriladi — eski tokenlar avtomatik yaroqsiz bo'ladi.
+    """
+    user = models.OneToOneField(
+        User, on_delete=models.CASCADE,
+        related_name='tablet_session',
+    )
+    session_key = models.CharField(max_length=64)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'Tablet session'
+        verbose_name_plural = 'Tablet sessions'
+
+    def __str__(self):
+        return f"{self.user} — {self.created_at:%Y-%m-%d %H:%M}"
+
+
 class DutyCheckIn(BaseModel):
     """Navbatchi boshlash/tugatish vaqtini qayd etadi."""
     employee = models.ForeignKey(

@@ -27,7 +27,19 @@ def _jwt_user(scope):
         return None
     try:
         token = AccessToken(token_str)
-        return User.objects.get(id=token['user_id'], is_active=True)
+        user = User.objects.get(id=token['user_id'], is_active=True)
+        # Sessiya validatsiyasi — eski tokenlar avtomatik rad etiladi
+        from tablet.models import TabletSession
+        session_key = token.payload.get('tablet_session_key')
+        if not session_key:
+            return None
+        try:
+            session = TabletSession.objects.get(user=user)
+            if session.session_key != session_key:
+                return None
+        except TabletSession.DoesNotExist:
+            return None
+        return user
     except (TokenError, User.DoesNotExist, KeyError):
         return None
 

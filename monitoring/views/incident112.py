@@ -1,6 +1,7 @@
 from django.conf import settings
 from django.utils import timezone
 from rest_framework import status
+from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import IsAuthenticated, BasePermission
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -12,6 +13,7 @@ from monitoring.serializers.incident112 import (
     Incident112DetailSerializer,
     Incident112NotificationSerializer,
 )
+from tablet.auth import IsTabletSessionValid
 
 
 class ApiKeyPermission(BasePermission):
@@ -90,15 +92,20 @@ class Incident112AdminDetailView(APIView):
         return Response(Incident112DetailSerializer(incident).data)
 
 
-# ── Tablet uchun (JWT) — o'z bildirishnomalar ro'yxati ───────────
+# ── Tablet uchun (JWT + session) — o'z bildirishnomalar ro'yxati ──
+
+class TabletIncidentPagination(PageNumberPagination):
+    page_size = 20
+    page_size_query_param = 'page_size'
+    max_page_size = 100
+
 
 class TabletIncidentListView(APIView):
     """
     GET /api/v1/tablet/incidents/
-    Foydalanuvchiga yuborilgan hodisa bildirishnomalari ro'yxati.
-    Filter: ?is_read=true|false
+    Filter: ?is_read=true|false  ?page=2  ?page_size=20
     """
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsTabletSessionValid]
 
     def get(self, request):
         qs = Incident112Notification.objects.filter(
@@ -108,8 +115,10 @@ class TabletIncidentListView(APIView):
         if (v := request.query_params.get('is_read')) is not None:
             qs = qs.filter(is_read=v.lower() == 'true')
 
-        serializer = Incident112NotificationSerializer(qs[:100], many=True)
-        return Response({'count': qs.count(), 'results': serializer.data})
+        paginator = TabletIncidentPagination()
+        page = paginator.paginate_queryset(qs, request)
+        serializer = Incident112NotificationSerializer(page, many=True)
+        return paginator.get_paginated_response(serializer.data)
 
 
 class AlarmLogListView(APIView):
@@ -162,7 +171,7 @@ class TabletIncidentReadView(APIView):
     PATCH /api/v1/tablet/incidents/<pk>/read/
     Bildirishnomani o'qilgan deb belgilaydi.
     """
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsTabletSessionValid]
 
     def patch(self, request, pk):
         try:
