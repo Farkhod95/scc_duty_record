@@ -169,21 +169,37 @@ class Incident112DetailSerializer(serializers.ModelSerializer):
 
 class Incident112NotificationSerializer(serializers.ModelSerializer):
     card_number = serializers.CharField(source='incident.card_number')
+    incident_id_112 = serializers.IntegerField(source='incident.incident_id_112', allow_null=True)
     incident_type_id = serializers.IntegerField(source='incident.incident_type_id')
+    incident_type_str = serializers.CharField(source='incident.incident_type_str', allow_null=True)
     incident_description = serializers.CharField(source='incident.incident_description')
     latitude = serializers.FloatField(source='incident.latitude', allow_null=True)
     longitude = serializers.FloatField(source='incident.longitude', allow_null=True)
     priority_id = serializers.IntegerField(source='incident.priority_id', allow_null=True)
+    priority_type_str = serializers.CharField(source='incident.priority_type_str', allow_null=True)
     fabula = serializers.CharField(source='incident.fabula', allow_null=True)
     called_phone = serializers.CharField(source='incident.called_phone')
+    city_name = serializers.CharField(source='incident.city_name', allow_null=True)
+    building = serializers.CharField(source='incident.building', allow_null=True)
+    note = serializers.CharField(source='incident.note', allow_null=True)
+    operator = serializers.CharField(source='incident.operator', allow_null=True)
+    dt_create = serializers.CharField(source='incident.dt_create', allow_null=True)
     incident_created_at = serializers.DateTimeField(source='incident.created_time')
+    declarant_info = serializers.JSONField(source='incident.declarant_info', allow_null=True)
+    victim_info = serializers.JSONField(source='incident.victim_info', allow_null=True)
 
     class Meta:
         model = Incident112Notification
         fields = [
             'id', 'incident_id',
-            'card_number', 'incident_type_id', 'incident_description',
-            'latitude', 'longitude', 'priority_id', 'fabula', 'called_phone',
-            'incident_created_at',
+            'incident_id_112', 'card_number',
+            'incident_type_id', 'incident_type_str',
+            'incident_description',
+            'latitude', 'longitude',
+            'priority_id', 'priority_type_str',
+            'fabula', 'called_phone',
+            'city_name', 'building', 'note',
+            'operator', 'dt_create', 'incident_created_at',
+            'declarant_info', 'victim_info',
             'distance_km', 'sent_at', 'is_read', 'read_at',
         ]

@@ -81,15 +81,25 @@ def notify_nearby_employees(self, incident_id: int):
     # WebSocket payload
     incident_payload = {
         'id': incident.id,
+        'incident_id_112': incident.incident_id_112,
         'card_number': incident.card_number,
         'incident_type_id': incident.incident_type_id,
+        'incident_type_str': incident.incident_type_str,
         'incident_description': incident.incident_description,
         'latitude': incident.latitude,
         'longitude': incident.longitude,
         'priority_id': incident.priority_id,
+        'priority_type_str': incident.priority_type_str,
         'fabula': incident.fabula,
         'called_phone': incident.called_phone,
+        'city_name': incident.city_name,
+        'building': incident.building,
+        'note': incident.note,
+        'operator': incident.operator,
+        'dt_create': incident.dt_create,
         'created_at': incident.created_time.isoformat(),
+        'declarant_info': incident.declarant_info,
+        'victim_info': incident.victim_info,
     }
 
     channel_layer = get_channel_layer()
