@@ -99,6 +99,21 @@ class TabletIncidentPagination(PageNumberPagination):
     page_size_query_param = 'page_size'
     max_page_size = 100
 
+    def get_paginated_response(self, data, extra=None):
+        page_num = self.page.number
+        total_pages = self.page.paginator.num_pages
+        result = {
+            'total_count': (extra or {}).get('total_count'),
+            'unread_count': (extra or {}).get('unread_count'),
+            'total_pages': total_pages,
+            'page': page_num,
+            'page_size': self.get_page_size(self.request),
+            'next_page': page_num + 1 if self.page.has_next() else None,
+            'prev_page': page_num - 1 if self.page.has_previous() else None,
+            'results': data,
+        }
+        return Response(result)
+
 
 class TabletIncidentListView(APIView):
     """
@@ -108,17 +123,24 @@ class TabletIncidentListView(APIView):
     permission_classes = [IsTabletSessionValid]
 
     def get(self, request):
-        qs = Incident112Notification.objects.filter(
+        base_qs = Incident112Notification.objects.filter(
             employee=request.user,
         ).select_related('incident').order_by('-sent_at')
 
+        total_count = base_qs.count()
+        unread_count = base_qs.filter(is_read=False).count()
+
+        qs = base_qs
         if (v := request.query_params.get('is_read')) is not None:
             qs = qs.filter(is_read=v.lower() == 'true')
 
         paginator = TabletIncidentPagination()
         page = paginator.paginate_queryset(qs, request)
         serializer = Incident112NotificationSerializer(page, many=True)
-        return paginator.get_paginated_response(serializer.data)
+        return paginator.get_paginated_response(
+            serializer.data,
+            extra={'total_count': total_count, 'unread_count': unread_count},
+        )
 
 
 class AlarmLogListView(APIView):

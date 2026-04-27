@@ -100,30 +100,30 @@ class TabletAuthView(APIView):
 class IsTabletSessionValid(IsAuthenticated):
     """
     JWT dagi tablet_session_key DB dagi bilan mos kelishini tekshiradi.
-    Yangi login bo'lganda eski tokenlar bu permission orqali rad etiladi.
+    Sessiya yaroqsiz bo'lsa 401 qaytaradi — planshet avtomatik logout qiladi.
     """
 
     def has_permission(self, request, view):
+        from rest_framework.exceptions import AuthenticationFailed
+
         if not super().has_permission(request, view):
             return False
 
-        auth = request.auth
-        if auth is None:
-            return False
-
-        # JWTAuthentication payload dan session_key olamiz
-        payload = getattr(auth, 'payload', None)
+        payload = getattr(request.auth, 'payload', None)
         if payload is None:
-            # TokenAuthentication kabi boshqa auth — tablet uchun ruxsat yo'q
-            return False
+            raise AuthenticationFailed('Sessiya yaroqsiz. Qayta kiring.')
 
         token_session_key = payload.get('tablet_session_key')
         if not token_session_key:
-            return False
+            raise AuthenticationFailed('Sessiya yaroqsiz. Qayta kiring.')
 
         from tablet.models import TabletSession
         try:
             session = TabletSession.objects.get(user=request.user)
-            return session.session_key == token_session_key
         except TabletSession.DoesNotExist:
-            return False
+            raise AuthenticationFailed('Sessiya yaroqsiz. Qayta kiring.')
+
+        if session.session_key != token_session_key:
+            raise AuthenticationFailed('Sessiya boshqa qurilmada ochilgan. Qayta kiring.')
+
+        return True

@@ -17,10 +17,23 @@ from tablet.serializers import TabletSectionSerializer, DutyCheckInSerializer, T
 logger = logging.getLogger(__name__)
 
 
-class IncidentPagination(PageNumberPagination):
+class TabletPagination(PageNumberPagination):
     page_size = 20
     page_size_query_param = 'page_size'
     max_page_size = 100
+
+    def get_paginated_response(self, data):
+        page_num = self.page.number
+        total_pages = self.page.paginator.num_pages
+        return Response({
+            'total_count': self.page.paginator.count,
+            'total_pages': total_pages,
+            'page': page_num,
+            'page_size': self.get_page_size(self.request),
+            'next_page': page_num + 1 if self.page.has_next() else None,
+            'prev_page': page_num - 1 if self.page.has_previous() else None,
+            'results': data,
+        })
 
 
 class TabletMeView(APIView):
@@ -69,7 +82,11 @@ class TabletMyDutyView(APIView):
             sections = sections.filter(duty_day__duty_date__gte=today)
 
         sections = sections.order_by('duty_day__duty_date', 'stage_number')
-        return Response(TabletSectionSerializer(sections, many=True, context={'request': request}).data)
+
+        paginator = TabletPagination()
+        page = paginator.paginate_queryset(sections, request)
+        serializer = TabletSectionSerializer(page, many=True, context={'request': request})
+        return paginator.get_paginated_response(serializer.data)
 
 
 class TabletTodayDutyView(APIView):
