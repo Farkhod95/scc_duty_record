@@ -200,14 +200,7 @@ def listen_alarm_stream(self, section_id: int):
                 'employee_name': employee.get_full_name() if employee else None,
             }
 
-            # 4. Tabletga (xodimga) yuborish
-            if employee:
-                async_to_sync(channel_layer.group_send)(
-                    f'incident_user_{employee.id}',
-                    {'type': 'incident_notification', 'data': payload},
-                )
-
-            # 5. Adminga (tuman bo'yicha) yuborish
+            # 4. Adminga (tuman bo'yicha) yuborish
             district_group = f'alarms_district_{district.id}' if district else 'alarms_all'
             async_to_sync(channel_layer.group_send)(
                 district_group,
