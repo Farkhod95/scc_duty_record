@@ -21,8 +21,8 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "proto"))
 from proto import location_service_pb2, location_service_pb2_grpc
 
 # ─── Konfiguratsiya ───────────────────────────────────────────────────────────
-API_BASE    = "http://192.168.168.17:8080/api/v1"
-GRPC_ADDR   = "192.168.168.17:50051"
+API_BASE    = "http://192.168.168.24:8080/api/v1"
+GRPC_ADDR   = "192.168.168.24:50051"
 USERNAME    = "officer"
 PASSWORD    = "q1w2e3"
 INTERVAL    = 10   # soniya
