@@ -69,6 +69,7 @@ CORS_ORIGIN_ALLOW_ALL = True
 #     "http://192.168.168.24:3033",
 #     "http://192.168.168.24",
 #     "http://192.168.168.24:8080",
+#     "http://10.190.66.2:8081",
 #     "http://localhost:3000",  # agar lokalda ishlayotgan bo‘lsa
 #     "http://localhost:5173",  # agar lokalda ishlayotgan bo‘lsa
 # ]
