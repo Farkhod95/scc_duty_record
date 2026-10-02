@@ -1,7 +1,7 @@
 from django.urls import path, re_path
 
 from monitoring.views import (
-    MapFiltersView, MapLiveView, MapHistoryView, MapZonesView,
+    MapFiltersView, MapLiveView, MapHistoryView, MapZonesView, MapThgLiveView,
     ThgIivProxyView,
     TerritoryExitLogCreateView, TerritoryExitLogListView, TerritoryExitLogDetailView,
     AdminDashboardView,
@@ -36,6 +36,7 @@ urlpatterns = [
     path('map/live/',    MapLiveView.as_view(),    name='map_live'),
     path('map/history/', MapHistoryView.as_view(), name='map_history'),
     path('map/zones/',   MapZonesView.as_view(),   name='map_zones'),
+    path('map/thg-live/', MapThgLiveView.as_view(), name='map_thg_live'),
 
     # ── THG → IIV integratsiyasi (xarita qatlamlari) ─────────────────────────
     path('integrations/iiv/references/regions/',   ThgIivProxyView.as_view(resource='regions'),        name='thg_iiv_regions'),

@@ -4,6 +4,7 @@ Xarita (Map) uchun API endpointlari.
 GET /api/v1/map/filters/   — Rol asosida mavjud filter opsiyalari
 GET /api/v1/map/live/      — Jonli xarita: xodimlar va transportlar holati (DutyInfo gRPC)
 GET /api/v1/map/history/   — Xodim harakati tarixi (DutyList gRPC)
+GET /api/v1/map/thg-live/  — THG guruhlarining jonli GPS holati (THG IIV API)
 
 Rol-asosida ko'rinish:
   SUPER_ADMIN    → hamma viloyat, tuman, tashkilotlar
@@ -12,8 +13,11 @@ Rol-asosida ko'rinish:
   OFFICER        → faqat o'z tashkiloti
 """
 import logging
+from datetime import datetime
 
+from django.conf import settings
 from django.utils import timezone
+from django.utils.translation import get_language
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -435,6 +439,93 @@ class MapZonesView(APIView):
             })
 
         return Response({'results': results})
+
+
+# ── 5. MapThgLiveView ────────────────────────────────────────────
+
+def _thg_name(obj, lang_key):
+    """THG {'id', 'oz', 'ru', 'uz'} ob'ektidan {'id', 'name'} yasaydi."""
+    if not obj:
+        return None
+    return {'id': obj.get('id'), 'name': obj.get(lang_key) or obj.get('uz') or obj.get('oz')}
+
+
+def _iso_to_ms(value):
+    """'2026-10-02T11:04:59.000Z' → epoch millisekund (map/live dagi updated_at formati)."""
+    if not value:
+        return None
+    try:
+        return int(datetime.fromisoformat(value.replace('Z', '+00:00')).timestamp() * 1000)
+    except ValueError:
+        return None
+
+
+class MapThgLiveView(APIView):
+    """
+    GET /api/v1/map/thg-live/
+    THG (qo'riqlash) guruhlarining jonli GPS holati — xarita uchun.
+    Query params: region_id, district_id, tqm_id (THG ID lari, integrations/iiv/references/* dan),
+                  online=true (faqat onlayn guruhlar)
+    Ma'lumot THG dan olinadi va THG_IIV_LIVE_CACHE_TTL soniya keshlanadi — frontend shu intervalda poll qiladi.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        from monitoring.services.thg_iiv_client import fetch, ThgIivError, ThgIivNotConfigured
+
+        params = request.query_params
+        try:
+            data = fetch('active-staff', params).get('data') or {}
+        except ThgIivNotConfigured as e:
+            return Response({'detail': str(e)}, status=503)
+        except ThgIivError as e:
+            return Response({'detail': str(e), 'upstream_status': e.status_code}, status=502)
+
+        # uz → lotin, uz-cyrl → kirill ('oz'), ru → ruscha
+        lang_key = {'ru': 'ru', 'uz-cyrl': 'oz'}.get(get_language() or '', 'uz')
+        online_only = params.get('online', '').lower() == 'true'
+
+        results = []
+        for item in data.get('items') or []:
+            is_online = bool(item.get('online'))
+            if online_only and not is_online:
+                continue
+            results.append({
+                'type': 'thg_group',
+                'plate_number': item.get('plate_number'),
+                'radio_call': item.get('radio_call'),
+                'is_online': is_online,
+                'latitude': item.get('lat'),
+                'longitude': item.get('lon'),
+                'angle': item.get('angle'),
+                'speed': item.get('speed'),
+                'updated_at': _iso_to_ms(item.get('last_time')),
+                'region': _thg_name(item.get('region'), lang_key),
+                'district': _thg_name(item.get('district'), lang_key),
+                'tqm': _thg_name(item.get('tqm'), lang_key),
+                'main_or_additional': _thg_name(item.get('main_or_additional'), lang_key),
+                'smena': _thg_name(item.get('smena'), lang_key),
+                'staff': [
+                    {
+                        'id': s.get('id'),
+                        'full_name': ' '.join(
+                            p for p in [s.get('lastname'), s.get('firstname'), s.get('surname')] if p
+                        ),
+                        'rank': (s.get('rank') or {}).get(lang_key),
+                        'photo': s.get('photo'),
+                    }
+                    for s in item.get('staff') or []
+                ],
+            })
+
+        return Response({
+            'total_groups': data.get('total_groups', 0),
+            'total_staff': data.get('total_staff', 0),
+            'online_groups': data.get('online_groups', 0),
+            'online_staff': data.get('online_staff', 0),
+            'poll_interval': settings.THG_IIV_LIVE_CACHE_TTL,
+            'results': results,
+        })
 
 
 # ── 4. MapHistoryView ────────────────────────────────────────────
