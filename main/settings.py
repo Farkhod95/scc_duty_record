@@ -291,6 +291,16 @@ GRPC_LOCATION_SERVICE_ADDR = env('GRPC_LOCATION_SERVICE_ADDR', default='192.168.
 INCIDENT_112_API_KEY        = env('INCIDENT_112_API_KEY', default='')
 INCIDENT_NOTIFY_RADIUS_KM   = env.float('INCIDENT_NOTIFY_RADIUS_KM', default=3.0)
 
+# THG → IIV xarita pull API (docs/IIV.postman_collection.json)
+# Kalit bo'sh bo'lsa /api/v1/integrations/iiv/* endpointlari 503 qaytaradi.
+THG_IIV_BASE_URL            = env('THG_IIV_BASE_URL', default='https://thg.iivqd.uz')
+THG_IIV_API_KEY             = env('THG_IIV_API_KEY', default='')
+THG_IIV_TIMEOUT             = env.int('THG_IIV_TIMEOUT', default=15)
+# Kesh muddatlari (soniya); 0 — keshsiz
+THG_IIV_REFERENCE_CACHE_TTL = env.int('THG_IIV_REFERENCE_CACHE_TTL', default=3600)
+THG_IIV_LAYER_CACHE_TTL     = env.int('THG_IIV_LAYER_CACHE_TTL', default=300)
+THG_IIV_LIVE_CACHE_TTL      = env.int('THG_IIV_LIVE_CACHE_TTL', default=10)
+
 # Planshet RSA-OAEP autentifikatsiyasi
 # Kalit juftini yaratish: python manage.py generate_tablet_keys
 TABLET_RSA_PRIVATE_KEY = env('TABLET_RSA_PRIVATE_KEY', default='').replace('\\n', '\n')

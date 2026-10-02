@@ -75,9 +75,9 @@ class LocationPointInline(admin.TabularInline):
 
 @admin.register(Location)
 class LocationAdmin(admin.ModelAdmin):
-    list_display = ('title', 'region', 'district', 'created_time')
+    list_display = ('title', 'region', 'district', 'source', 'created_time')
     search_fields = ('title',)
-    list_filter = ('region', 'district')
+    list_filter = ('source', 'region', 'district')
     filter_horizontal = ('mahallas',)
     readonly_fields = ('created_time', 'updated_time', 'created_by', 'updated_by')
     inlines = [LocationPointInline]

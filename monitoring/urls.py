@@ -2,6 +2,7 @@ from django.urls import path, re_path
 
 from monitoring.views import (
     MapFiltersView, MapLiveView, MapHistoryView, MapZonesView,
+    ThgIivProxyView,
     TerritoryExitLogCreateView, TerritoryExitLogListView, TerritoryExitLogDetailView,
     AdminDashboardView,
     Incident112ReceiveView,
@@ -35,6 +36,17 @@ urlpatterns = [
     path('map/live/',    MapLiveView.as_view(),    name='map_live'),
     path('map/history/', MapHistoryView.as_view(), name='map_history'),
     path('map/zones/',   MapZonesView.as_view(),   name='map_zones'),
+
+    # ── THG → IIV integratsiyasi (xarita qatlamlari) ─────────────────────────
+    path('integrations/iiv/references/regions/',   ThgIivProxyView.as_view(resource='regions'),        name='thg_iiv_regions'),
+    path('integrations/iiv/references/districts/', ThgIivProxyView.as_view(resource='districts'),      name='thg_iiv_districts'),
+    path('integrations/iiv/references/tqm/',       ThgIivProxyView.as_view(resource='tqm'),            name='thg_iiv_tqm'),
+    path('integrations/iiv/red-points/',           ThgIivProxyView.as_view(resource='red-points'),     name='thg_iiv_red_points'),
+    path('integrations/iiv/tqm-zones/',            ThgIivProxyView.as_view(resource='tqm-zones'),      name='thg_iiv_tqm_zones'),
+    path('integrations/iiv/patrol-routes/',        ThgIivProxyView.as_view(resource='patrol-routes'),  name='thg_iiv_patrol_routes'),
+    path('integrations/iiv/ppx/areas/',            ThgIivProxyView.as_view(resource='ppx-areas'),      name='thg_iiv_ppx_areas'),
+    path('integrations/iiv/ppx/red-points/',       ThgIivProxyView.as_view(resource='ppx-red-points'), name='thg_iiv_ppx_red_points'),
+    path('integrations/iiv/active-staff/',         ThgIivProxyView.as_view(resource='active-staff'),   name='thg_iiv_active_staff'),
 
     # Dashboard
     re_path(r'^dashboard/$', DashboardView.as_view(), name='dashboard_view'),

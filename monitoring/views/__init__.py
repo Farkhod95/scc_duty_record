@@ -28,6 +28,7 @@ from monitoring.views.event import (
     EventPdfView,
 )
 from monitoring.views.map import MapFiltersView, MapLiveView, MapHistoryView, MapZonesView
+from monitoring.views.thg_iiv import ThgIivProxyView
 from monitoring.views.territory_exit import (
     TerritoryExitLogCreateView,
     TerritoryExitLogListView,

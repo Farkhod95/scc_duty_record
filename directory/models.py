@@ -194,6 +194,14 @@ class Location(BaseModel):
         'Mahalla', blank=True,
         related_name='locations', help_text=_("Location ichidagi mahallalar")
     )
+    source = models.CharField(
+        _('Source'), max_length=50, null=True, blank=True,
+        help_text=_("Tashqi tizimdan kelgan bo'lsa manba (masalan: 'thg_tqm_zone')")
+    )
+    external_id = models.BigIntegerField(
+        _('External ID'), null=True, blank=True,
+        help_text=_("Tashqi tizimdagi ID")
+    )
 
     class Meta:
         verbose_name = _('location')
@@ -202,6 +210,13 @@ class Location(BaseModel):
         indexes = [
             models.Index(fields=['region']),
             models.Index(fields=['district']),
+        ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=['source', 'external_id'],
+                condition=models.Q(source__isnull=False),
+                name='uniq_location_source_external_id',
+            ),
         ]
 
     def __str__(self):
